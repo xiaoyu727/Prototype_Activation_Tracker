@@ -1,0 +1,51 @@
+---
+description: "Strict Figma-to-code parity rules (1:1 implementation)."
+globs:
+  - "**/*.{tsx,ts,jsx,js,css}"
+alwaysApply: true
+---
+
+# Figma Design Implementation Rules (STRICT)
+
+## Priority (Figma > everything)
+- **Strive for 1:1 visual parity with the Figma design.**
+- **When conflicts arise, prioritize the Figma design over Tailwind utility classes, defaults, or developer preference.**
+- If the current code deviates from Figma, **change the code to match Figma**.
+
+## Layout (Auto Layout -> Flex/Grid only)
+- **Use CSS Flexbox/Grid exclusively**, mapping directly from **Figma Auto Layout**.
+- Translate Figma's Auto Layout properties directly:
+  - Direction → `flex-row` / `flex-col`
+  - Spacing between → `gap-[Xpx]`
+  - Padding → `p-[Xpx]` / `px-[Xpx]` / `py-[Xpx]`
+  - Alignment → `items-*`, `justify-*`
+  - Hug/Fill/Fixed behavior → appropriate flex/grid sizing (`flex-1`, `w-[Xpx]`, `min-w-[Xpx]`, etc.)
+- **Do not use absolute positioning** unless Figma explicitly uses it and it's required for parity.
+
+## Dimensions (Exact inspector values; no guessing)
+- **Use absolute values (px) or relative values (%) exactly as they appear in the Figma inspector.**
+- **Never guess spacing, padding, margins, widths, heights, radii, borders, or gaps.**
+- If a value is unknown or not visible in the inspector, **stop and request the exact Figma value** (or require it to be provided).
+
+## Styling (Arbitrary Tailwind values required)
+- **Use Tailwind utility classes to match exact values**, including arbitrary values:
+  - Examples: `p-[10px]`, `gap-[18px]`, `rounded-[12px]`, `leading-[22px]`, `shadow-[...]`, `border-[1px]`
+- **Do not "snap" to Tailwind's default spacing scale** (e.g., don't replace `p-[10px]` with `p-2.5` unless Figma explicitly equals that and parity is preserved).
+- Prefer utilities over custom CSS, but if Tailwind cannot express an exact Figma style, use minimal custom CSS **only to achieve exact parity**.
+
+## Colors & Typography (Figma system only)
+- **Use only the color system and typography scale defined in the Figma file.**
+- **Do not introduce new colors** (no ad-hoc hex values) unless the Figma file explicitly specifies them.
+- Typography must match Figma exactly:
+  - Font family, weight, size, line-height, letter-spacing, casing
+  - Use arbitrary Tailwind values where needed: `text-[14px]`, `leading-[20px]`, `tracking-[-0.01em]`, etc.
+
+## Validation (Required before finalizing)
+Before finalizing any UI work:
+- **Verify the generated code is 1:1 with the Figma snapshot**:
+  - Layout structure matches (containers, nesting, alignment)
+  - Spacing (padding/margins/gaps) matches exactly
+  - Dimensions match exactly (w/h/min/max)
+  - Colors and typography match exactly
+  - Border radius, borders, shadows match exactly
+- If anything cannot be verified, **do not finalize**—request the missing Figma inspector values or snapshot reference.
