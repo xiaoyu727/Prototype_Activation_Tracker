@@ -1,0 +1,69 @@
+import React, { useEffect } from 'react';
+
+export interface ToastProps {
+  message: string;
+  visible: boolean;
+  onClose: () => void;
+  duration?: number;
+}
+
+const CheckIcon = ({ color }: { color: string }) => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20.793 4.79295C21.1835 4.40243 21.8166 4.40243 22.2071 4.79295C22.5976 5.18348 22.5976 5.81649 22.2071 6.20702L8.70708 19.707C8.31655 20.0975 7.68354 20.0975 7.29302 19.707L1.79302 14.207C1.40249 13.8165 1.40249 13.1835 1.79302 12.793C2.18354 12.4024 2.81655 12.4024 3.20708 12.793L8.00005 17.5859L20.793 4.79295Z" fill={color}/>
+  </svg>
+);
+
+export const Toast: React.FC<ToastProps> = ({ 
+  message, 
+  visible, 
+  onClose, 
+  duration = 2500 
+}) => {
+  useEffect(() => {
+    if (visible) {
+      const timer = setTimeout(() => {
+        onClose();
+      }, duration);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [visible, duration, onClose]);
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        bottom: visible ? '24px' : '-100px',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        backgroundColor: '#191919',
+        borderRadius: '8px',
+        padding: '12px 16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        boxShadow: '0px 4px 16px rgba(25, 25, 25, 0.2)',
+        transition: 'bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        opacity: visible ? 1 : 0,
+        zIndex: 9999,
+        minHeight: '24px',
+        pointerEvents: visible ? 'auto' : 'none',
+      }}
+    >
+      <CheckIcon color="white" />
+      <div
+        style={{
+          fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+          fontSize: '16px',
+          fontWeight: 500,
+          lineHeight: '22px',
+          letterSpacing: '-0.01px',
+          color: 'white',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {message}
+      </div>
+    </div>
+  );
+};

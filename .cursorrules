@@ -1,0 +1,9 @@
+# Venue scope (NV / RX)
+
+When adding or updating a feature in this project, **ask the user** whether the change should apply to:
+
+- **NV** (New Verticals / METRO Supermarkets)
+- **RX** (Restaurants / Lucky Burgers)
+- **Both**
+
+Then implement only for the chosen scope (e.g. only in `data-nv.ts` or `data-rx.ts`, or in shared code for both). See `src/pages/ProductListPage/VENUES.md` for structure.
