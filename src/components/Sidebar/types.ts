@@ -1,10 +1,13 @@
 import type React from 'react';
+import type { ChatContext } from '../ChatPanel/types';
 
 export interface SidebarNavItem {
   id: string;
   label: string;
   icon: React.ReactNode;
   active?: boolean;
+  /** Route path for navigation. When set, clicking the item navigates to this path. */
+  path?: string;
 }
 
 export interface SidebarProps {
@@ -32,4 +35,14 @@ export interface SidebarProps {
   onSendClick?: () => void;
   /** Called when venue block (name/avatar row) is clicked. Use to switch between NV and RX. */
   onVenueSwitch?: () => void;
+  /** Whether the AI chat panel is currently open */
+  chatOpen?: boolean;
+  /** Called when the AI chat toggle button is clicked */
+  onChatToggle?: () => void;
+  /** Badge count for AI chat (issues to resolve, etc.) */
+  chatBadgeCount?: number;
+  /** Context for the AI chat (current page, product data, etc.) */
+  chatContext?: ChatContext;
+  /** Callback when AI triggers an action on the page (e.g., filter products) */
+  onChatAction?: (actionId: string, payload?: Record<string, unknown>) => void;
 }

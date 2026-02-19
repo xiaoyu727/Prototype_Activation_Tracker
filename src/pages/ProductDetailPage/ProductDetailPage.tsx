@@ -654,6 +654,7 @@ export const ProductDetailPage: React.FC = () => {
           setHasChanges(false);
         }}
         onActionBarSaveProduct={() => setGoLiveModalOpen(true)}
+        currentProduct={product}
       />
       <GoLiveConfirmModal
         isOpen={goLiveModalOpen}

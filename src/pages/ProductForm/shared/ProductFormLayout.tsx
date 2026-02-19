@@ -1,14 +1,17 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { tokens } from '../../../../tokens';
 import { Sidebar } from '../../../components/Sidebar';
 import { Breadcrumbs } from '../../../components/Breadcrumbs';
 import type { BreadcrumbItem } from '../../../components/Breadcrumbs';
+import { getBadgeCount } from '../../../components/ChatPanel';
+import type { ChatContext } from '../../../components/ChatPanel';
 import { ProductFormActionBar } from './ProductFormActionBar';
+import type { Product } from '../../ProductListPage/types';
 import type { Venue } from '../../ProductListPage/venue';
 import { VENUE_DISPLAY_NAMES } from '../../ProductListPage/venue';
 import pedregalLogo from '../../../images/.Nav/Pedregal.svg';
-import metroLogoImage from '../../../images/NV/Metro_logo.png';
+import bobaBloomLogoSidebar from '../../../images/boba-bloom-logo.png';
 import burgeramtLogoImage from '../../../images/RX/Burgeramt Prenzlauer Berg.avif';
 import HomeLineSvg from '../../../icons/16/home-line.svg';
 import SearchLineSvg from '../../../icons/16/search-line.svg';
@@ -51,6 +54,8 @@ export interface ProductFormLayoutProps {
   showActionBar?: boolean;
   onActionBarCancel?: () => void;
   onActionBarSaveProduct?: () => void;
+  /** Current product being viewed/edited (for AI chat context) */
+  currentProduct?: Product;
 }
 
 export const ProductFormLayout: React.FC<ProductFormLayoutProps> = ({
@@ -66,8 +71,20 @@ export const ProductFormLayout: React.FC<ProductFormLayoutProps> = ({
   showActionBar = false,
   onActionBarCancel,
   onActionBarSaveProduct,
+  currentProduct,
 }) => {
   const navigate = useNavigate();
+  const [chatOpen, setChatOpen] = useState(false);
+
+  const chatContext: ChatContext = {
+    page: 'product-detail',
+    currentProduct,
+  };
+  const chatBadgeCount = getBadgeCount(chatContext);
+
+  const handleChatAction = useCallback((_actionId: string) => {
+    // Product detail chat actions (e.g., applying descriptions/allergens) handled here
+  }, []);
 
   return (
     <div
@@ -84,25 +101,30 @@ export const ProductFormLayout: React.FC<ProductFormLayoutProps> = ({
         onExpandedChange={onSidebarExpandedChange}
         logoSrc={pedregalLogo}
         logoAlt="Pedregal"
-        venueAvatarSrc={venue === 'NV' ? metroLogoImage : burgeramtLogoImage}
-        venueAvatarAlt={venue === 'NV' ? 'Metro' : 'Burgeramt'}
+        venueAvatarSrc={venue === 'NV' ? bobaBloomLogoSidebar : burgeramtLogoImage}
+        venueAvatarAlt={venue === 'NV' ? 'Boba Bloom' : 'Burgeramt'}
         venueName={VENUE_DISPLAY_NAMES[venue]}
-        onVenueSwitch={() => navigate('/', { state: { venue } })}
+        onVenueSwitch={() => navigate('/menu', { state: { venue } })}
         mainNavItems={[
-          { id: 'home', label: 'Home', icon: <SidebarIcon src={HomeLineSvg} /> },
-          { id: 'search', label: 'Search', icon: <SidebarIcon src={SearchLineSvg} /> },
-          { id: 'inbox', label: 'Inbox', icon: <SidebarIcon src={ChatDefaultLineSvg} /> },
+          { id: 'home', label: 'Home', icon: <SidebarIcon src={HomeLineSvg} />, path: '/' },
+          { id: 'search', label: 'Search', icon: <SidebarIcon src={SearchLineSvg} />, path: '#' },
+          { id: 'inbox', label: 'Inbox', icon: <SidebarIcon src={ChatDefaultLineSvg} />, path: '#' },
         ]}
         toolsNavItems={[
-          { id: 'menu', label: 'Menu', icon: <SidebarIcon src={MenuEditLineSvg} />, active: true },
-          { id: 'orders', label: 'Orders', icon: <SidebarIcon src={OrderBagLineSvg} /> },
-          { id: 'money', label: 'Money', icon: <SidebarIcon src={CoinBagLineSvg} /> },
-          { id: 'analytics', label: 'Analytics', icon: <SidebarIcon src={DashboardLineSvg} /> },
-          { id: 'marketing', label: 'Marketing', icon: <SidebarIcon src={PromoBullhornLineSvg} /> },
-          { id: 'settings', label: 'Settings', icon: <SidebarIcon src={SettingsLineSvg} /> },
+          { id: 'menu', label: 'Menu', icon: <SidebarIcon src={MenuEditLineSvg} />, path: '/menu' },
+          { id: 'orders', label: 'Orders', icon: <SidebarIcon src={OrderBagLineSvg} />, path: '#' },
+          { id: 'money', label: 'Money', icon: <SidebarIcon src={CoinBagLineSvg} />, path: '#' },
+          { id: 'analytics', label: 'Analytics', icon: <SidebarIcon src={DashboardLineSvg} />, path: '#' },
+          { id: 'marketing', label: 'Marketing', icon: <SidebarIcon src={PromoBullhornLineSvg} />, path: '#' },
+          { id: 'settings', label: 'Settings', icon: <SidebarIcon src={SettingsLineSvg} />, path: '#' },
         ]}
         chatInputPlaceholder="Ask us anything"
-        onSendClick={() => {}}
+        onSendClick={() => { setChatOpen((o) => !o); if (!sidebarExpanded) onSidebarExpandedChange(true); }}
+        chatOpen={chatOpen}
+        onChatToggle={() => { setChatOpen((o) => !o); if (!sidebarExpanded) onSidebarExpandedChange(true); }}
+        chatBadgeCount={chatBadgeCount}
+        chatContext={chatContext}
+        onChatAction={handleChatAction}
       />
 
       <div style={{ display: 'flex', flex: 1, padding: '8px 8px 8px 0', minWidth: 0 }}>
@@ -224,6 +246,7 @@ export const ProductFormLayout: React.FC<ProductFormLayoutProps> = ({
           )}
         </div>
       </div>
+
     </div>
   );
 };

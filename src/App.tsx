@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { SidebarStateProvider } from './contexts/SidebarStateContext';
+import { OnboardingPage } from './pages/OnboardingPage';
 import { ProductListPage } from './pages/ProductListPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { CreateNewProductPage } from './pages/ProductForm';
@@ -41,7 +42,8 @@ class AppErrorBoundary extends React.Component<
 
 const router = createBrowserRouter(
   [
-    { path: '/', element: <ProductListPage /> },
+    { path: '/', element: <OnboardingPage /> },
+    { path: '/menu', element: <ProductListPage /> },
     { path: '/product/new', element: <CreateNewProductPage /> },
     { path: '/product/:id', element: <ProductDetailPage /> },
   ],

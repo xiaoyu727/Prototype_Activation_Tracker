@@ -8,6 +8,8 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, './src'),
       '@tokens': resolve(__dirname, './tokens'),
+      // Local shim – remove once @doordash/prism-react is installed from JFrog
+      '@doordash/prism-react': resolve(__dirname, './src/lib/prism-react/index.tsx'),
     },
   },
   build: {

@@ -16,7 +16,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@tokens": ["./tokens/index.ts"]
+      "@tokens": ["./tokens/index.ts"],
+      "@doordash/prism-react": ["./src/lib/prism-react/index.tsx"]
     }
   },
   "include": ["tokens/**/*", "src/**/*"],

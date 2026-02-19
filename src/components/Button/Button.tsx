@@ -9,7 +9,7 @@ export interface ButtonProps {
   /**
    * Button variant style. Use "flat" for no background and no border (text-only).
    */
-  variant?: 'primary' | 'secondary' | 'tertiary' | 'flat';
+  variant?: 'primary' | 'secondary' | 'tertiary' | 'flat' | 'floating';
   /**
    * Button size. compact = padding 4/12, gap 4, hug height/width (no minHeight).
    */
@@ -129,6 +129,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               border: 'none',
               boxShadow: 'none',
             };
+          case 'floating':
+            return {
+              backgroundColor: tokens.colors.brand.surfaceDisabled,
+              color: tokens.colors.brand.textDisabled,
+              border: 'none',
+              boxShadow: 'none',
+            };
         }
       }
       switch (variant) {
@@ -148,10 +155,10 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           };
         case 'tertiary':
           return {
-            backgroundColor: 'transparent',
-            color: tokens.semantic.colors.text.neutral,
-            border: 'none',
-            boxShadow: `inset 0 0 0 ${thin}px ${borderSubdued}`,
+            backgroundColor: '#F1F1F1',
+            color: '#191919',
+            border: '1px solid #F1F1F1',
+            boxShadow: 'none',
           };
         case 'flat':
           return {
@@ -159,6 +166,13 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             color: tokens.semantic.colors.text.neutral,
             border: 'none',
             boxShadow: 'none',
+          };
+        case 'floating':
+          return {
+            backgroundColor: '#FFFFFF',
+            color: tokens.semantic.colors.text.neutral,
+            border: 'none',
+            boxShadow: '0px 2px 8px 0px rgba(25, 25, 25, 0.2)',
           };
       }
     };
@@ -214,14 +228,18 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              width: `${tokens.usage.sizing.xSmall}px`,
-              height: `${tokens.usage.sizing.xSmall}px`,
+              justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
             {icon}
           </span>
         )}
-        {children}
+        {children && (
+          <span style={{ display: 'inline-flex', alignItems: 'center' }}>
+            {children}
+          </span>
+        )}
       </button>
     );
   }

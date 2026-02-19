@@ -52,7 +52,7 @@ import {
   DashmartLineIcon,
   DealsLineIcon,
 } from './icons';
-import metroLogoImage from '../../images/NV/Metro_logo.png';
+import bobaBloomLogoSidebar from '../../images/boba-bloom-logo.png';
 import burgeramtLogoImage from '../../images/RX/Burgeramt Prenzlauer Berg.avif';
 import pedregalLogo from '../../images/.Nav/Pedregal.svg';
 import DragHandleIcon from '../../icons/Drag handle.svg';
@@ -72,6 +72,8 @@ import CoinBagLineSvg from '../../icons/16/coin-bag-line.svg';
 import DashboardLineSvg from '../../icons/16/dashboard-line.svg';
 import PromoBullhornLineSvg from '../../icons/16/promo-bullhorn-line.svg';
 import SettingsLineSvg from '../../icons/16/settings-line.svg';
+import { getBadgeCount } from '../../components/ChatPanel';
+import type { ChatContext } from '../../components/ChatPanel';
 
 /** Renders a 16px icon from src/icons/16 as white for the sidebar. */
 function SidebarIcon({ src }: { src: string }) {
@@ -167,29 +169,40 @@ export const ProductListPage: React.FC = () => {
   const tableTopRef = useRef<HTMLDivElement>(null);
 
   const [venue, setVenue] = useState<Venue>('NV');
+  const [chatOpen, setChatOpen] = useState(false);
+  const [fromOnboarding, setFromOnboarding] = useState(false);
   const [contentRevealReady, setContentRevealReady] = useState(true);
   const [productsData, setProductsData] = useState<Product[]>(() => getInitialProductsDataByVenue('NV'));
+  const fullProductsRef = useRef<Product[]>(getInitialProductsDataByVenue('NV'));
   const categoryOptions = getCategoryOptionsByVenue(venue);
   const [collectionsData, setCollectionsData] = useState<Collection[]>(() => getCollectionsByVenue('NV'));
 
   useEffect(() => {
     if (venueFromNav !== undefined) {
-      const state = location.state as { venue?: Venue; newProduct?: Product; toastMessage?: string } | null;
+      const state = location.state as { venue?: Venue; newProduct?: Product; toastMessage?: string; openChat?: boolean } | null;
       setVenue(venueFromNav);
       const initialProducts = getInitialProductsDataByVenue(venueFromNav);
       if (state?.newProduct) {
-        setProductsData([state.newProduct, ...initialProducts]);
+        const withNew = [state.newProduct, ...initialProducts];
+        setProductsData(withNew);
+        fullProductsRef.current = withNew;
         if (state.toastMessage) {
           setToastMessage(state.toastMessage);
           setToastVisible(true);
         }
       } else {
         setProductsData(initialProducts);
+        fullProductsRef.current = initialProducts;
       }
       setCollectionsData(getCollectionsByVenue(venueFromNav));
+      if (state?.openChat) {
+        setChatOpen(true);
+        setFromOnboarding(true);
+        setSidebarExpanded(true);
+      }
       navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [venueFromNav, navigate, location.pathname, location.state]);
+  }, [venueFromNav, navigate, location.pathname, location.state, setSidebarExpanded]);
 
   useEffect(() => {
     setCollectionsData(getCollectionsByVenue(venue));
@@ -587,9 +600,9 @@ export const ProductListPage: React.FC = () => {
               onEditRequest={() => setEditingPriceId(product.id)}
               onSave={(v) => handlePriceSave(product.id, v)}
               onCancel={handlePriceCancel}
-              prefix="$ "
+              prefix="€ "
               parseInput={(raw) => raw.replace(/[^0-9.]/g, '')}
-              formatDisplay={(v) => `$ ${v}`}
+              formatDisplay={(v) => `€ ${v}`}
               variant="label.small.default"
               stopPropagation
             />
@@ -934,7 +947,7 @@ export const ProductListPage: React.FC = () => {
     const product = productsData.find(p => p.id === productId);
     if (!product) return;
 
-    const priceAfter = `$ ${newValue.trim()}`;
+    const priceAfter = `€ ${newValue.trim()}`;
     const priceBefore = product.price;
 
     if (doNotShowPriceModal) {
@@ -1239,6 +1252,50 @@ export const ProductListPage: React.FC = () => {
     { id: 'add-from-catalog', label: 'Add from catalog', icon: BookSvg, onClick: () => {} },
   ];
 
+  const chatContext: ChatContext = {
+    page: 'menu',
+    products: fullProductsRef.current,
+    fromOnboarding,
+  };
+  const chatBadgeCount = getBadgeCount(chatContext);
+
+  const handleChatAction = useCallback((actionId: string) => {
+    if (actionId === 'filter-no-image') {
+      setProductsData((prev) => prev.filter((p) => !p.image));
+    } else if (actionId === 'apply-all-allergens') {
+      setProductsData((prev) =>
+        prev.map((p) => {
+          if (p.allergensDeclared) return p;
+          return { ...p, allergensDeclared: true, allergens: p.allergens ?? [] };
+        })
+      );
+    } else if (actionId === 'guide-allergens') {
+      // Filter table to show only items missing allergen data
+      setProductsData(fullProductsRef.current.filter((p) => !p.allergensDeclared));
+    } else if (actionId === 'guide-apply-allergens') {
+      // Apply allergen suggestions and restore full list
+      const updated = fullProductsRef.current.map((p) => {
+        if (p.allergensDeclared) return p;
+        return { ...p, allergensDeclared: true, allergens: p.allergens ?? [] };
+      });
+      fullProductsRef.current = updated;
+      setProductsData(updated);
+    } else if (actionId === 'guide-images') {
+      // Filter table to show only items missing images
+      setProductsData(fullProductsRef.current.filter((p) => !p.image));
+    } else if (actionId === 'guide-apply-matched-images') {
+      // Apply matched images and restore full list
+      const updated = fullProductsRef.current.map((p) => {
+        if (p.image) return p;
+        return { ...p, image: 'placeholder' };
+      });
+      fullProductsRef.current = updated;
+      setProductsData(updated);
+    } else if (actionId === 'navigate-home') {
+      navigate('/', { state: { venue } });
+    }
+  }, [navigate, venue]);
+
   return (
     <>
       {/* Responsive Grid Styles + spinner keyframes */}
@@ -1303,25 +1360,30 @@ export const ProductListPage: React.FC = () => {
         onExpandedChange={setSidebarExpanded}
         logoSrc={pedregalLogo}
         logoAlt="Pedregal"
-        venueAvatarSrc={venue === 'NV' ? metroLogoImage : burgeramtLogoImage}
-        venueAvatarAlt={venue === 'NV' ? 'Metro' : 'Burgeramt Prenzlauer Berg'}
+        venueAvatarSrc={venue === 'NV' ? bobaBloomLogoSidebar : burgeramtLogoImage}
+        venueAvatarAlt={venue === 'NV' ? 'Boba Bloom' : 'Burgeramt Prenzlauer Berg'}
         venueName={VENUE_DISPLAY_NAMES[venue]}
         onVenueSwitch={handleVenueSwitch}
         mainNavItems={[
-          { id: 'home', label: 'Home', icon: <SidebarIcon src={HomeLineSvg} /> },
-          { id: 'search', label: 'Search', icon: <SidebarIcon src={SearchLineSvg} /> },
-          { id: 'inbox', label: 'Inbox', icon: <SidebarIcon src={ChatDefaultLineSvg} /> },
+          { id: 'home', label: 'Home', icon: <SidebarIcon src={HomeLineSvg} />, path: '/' },
+          { id: 'search', label: 'Search', icon: <SidebarIcon src={SearchLineSvg} />, path: '#' },
+          { id: 'inbox', label: 'Inbox', icon: <SidebarIcon src={ChatDefaultLineSvg} />, path: '#' },
         ]}
         toolsNavItems={[
-          { id: 'menu', label: 'Menu', icon: <SidebarIcon src={MenuEditLineSvg} />, active: true },
-          { id: 'orders', label: 'Orders', icon: <SidebarIcon src={OrderBagLineSvg} /> },
-          { id: 'money', label: 'Money', icon: <SidebarIcon src={CoinBagLineSvg} /> },
-          { id: 'analytics', label: 'Analytics', icon: <SidebarIcon src={DashboardLineSvg} /> },
-          { id: 'marketing', label: 'Marketing', icon: <SidebarIcon src={PromoBullhornLineSvg} /> },
-          { id: 'settings', label: 'Settings', icon: <SidebarIcon src={SettingsLineSvg} /> },
+          { id: 'menu', label: 'Menu', icon: <SidebarIcon src={MenuEditLineSvg} />, path: '/menu' },
+          { id: 'orders', label: 'Orders', icon: <SidebarIcon src={OrderBagLineSvg} />, path: '#' },
+          { id: 'money', label: 'Money', icon: <SidebarIcon src={CoinBagLineSvg} />, path: '#' },
+          { id: 'analytics', label: 'Analytics', icon: <SidebarIcon src={DashboardLineSvg} />, path: '#' },
+          { id: 'marketing', label: 'Marketing', icon: <SidebarIcon src={PromoBullhornLineSvg} />, path: '#' },
+          { id: 'settings', label: 'Settings', icon: <SidebarIcon src={SettingsLineSvg} />, path: '#' },
         ]}
         chatInputPlaceholder="Ask us anything"
-        onSendClick={() => {}}
+        onSendClick={() => { setChatOpen((o) => !o); if (!sidebarExpanded) setSidebarExpanded(true); }}
+        chatOpen={chatOpen}
+        onChatToggle={() => { setChatOpen((o) => !o); if (!sidebarExpanded) setSidebarExpanded(true); }}
+        chatBadgeCount={chatBadgeCount}
+        chatContext={chatContext}
+        onChatAction={handleChatAction}
       />
 
       {/* Main Content */}
@@ -1369,7 +1431,7 @@ export const ProductListPage: React.FC = () => {
               >
                 <Breadcrumbs
                   items={[
-                    { label: 'Home', href: '#' },
+                    { label: 'Home', href: '/' },
                     { label: venue === 'RX' ? 'Menu items' : 'Product list' },
                   ]}
                 />
@@ -1809,11 +1871,11 @@ export const ProductListPage: React.FC = () => {
                           const storeLabel = `${storeCount} store${storeCount !== 1 ? 's' : ''}`;
                           const revenue =
                             col.status === 'Scheduled'
-                              ? '$ 0.00'
+                              ? '€ 0.00'
                               : (() => {
                                   const seed = col.id.split('').reduce((s, c) => s + c.charCodeAt(0), 0);
                                   const cents = 1000 + (seed % 49000);
-                                  return `$ ${(cents / 100).toFixed(2)}`;
+                                  return `€ ${(cents / 100).toFixed(2)}`;
                                 })();
                           const labelColor = tokens.semantic.colors.text.subdued;
                           return (
@@ -2430,6 +2492,7 @@ export const ProductListPage: React.FC = () => {
         onCancel={handleEditColumnsCancel}
       />
     </div>
+
     </>
   );
 };

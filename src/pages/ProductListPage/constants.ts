@@ -12,18 +12,13 @@ export const DEFAULT_COLUMN_CONFIG: ColumnConfig[] = [
   { id: 'gtin', label: 'GTIN', selected: false, isCore: false },
 ];
 
-/** NV (METRO Supermarkets) category options. */
+/** NV (Boba Bloom) category options. */
 export const CATEGORY_OPTIONS = [
-  'Special Offers',
-  'Fresh Fruits',
-  'Fresh Vegetables',
-  'Ready Made Meals',
-  'Fresh Meat',
-  'Fresh Fish & Seafood',
-  'Beverages',
-  'Milk',
-  'Eggs',
-  'Facial Care',
+  'Most ordered',
+  'Specials',
+  'Fruit tea',
+  'Milk tea',
+  'Signature drinks',
 ];
 
 /** RX (Burgeramt Prenzlauer Berg) category options. */

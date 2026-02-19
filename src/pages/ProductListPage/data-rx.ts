@@ -68,49 +68,51 @@ function generateQualityScore(id: string): number {
   return 40 + ((seed * 17) % 61);
 }
 
-const RX_ITEMS: { name: string; category: string }[] = [
-  { name: 'Cheesebomb Burger', category: 'Beef Burger' },
-  { name: 'Chili Cheesebomb Burger', category: 'Beef Burger' },
+import type { Allergen } from './types';
+
+const RX_ITEMS: { name: string; category: string; allergens?: Allergen[]; allergensDeclared?: boolean; description?: string }[] = [
+  { name: 'Cheesebomb Burger', category: 'Beef Burger', allergens: ['Cereals containing gluten', 'Milk', 'Eggs', 'Sesame'], allergensDeclared: true, description: 'Double beef patty loaded with melted cheese, pickles, and our signature sauce in a brioche bun.' },
+  { name: 'Chili Cheesebomb Burger', category: 'Beef Burger', allergens: ['Cereals containing gluten', 'Milk', 'Eggs', 'Sesame'], allergensDeclared: true },
   { name: 'Geto Burger', category: 'Beef Burger' },
-  { name: 'Mobb Beef Burger', category: 'Beef Burger' },
+  { name: 'Mobb Beef Burger', category: 'Beef Burger', allergens: ['Cereals containing gluten', 'Milk', 'Sesame'], allergensDeclared: true },
   { name: 'Cheat Day Burger', category: 'Beef Burger' },
   { name: 'Double Trouble Burger', category: 'Beef Burger' },
-  { name: 'Smokey Pig Burger', category: 'Beef Burger' },
-  { name: 'Chicken Chili Cheese Burger', category: 'Chicken Burger' },
+  { name: 'Smokey Pig Burger', category: 'Beef Burger', allergens: ['Cereals containing gluten', 'Milk', 'Mustard'], allergensDeclared: true },
+  { name: 'Chicken Chili Cheese Burger', category: 'Chicken Burger', allergens: ['Cereals containing gluten', 'Milk', 'Eggs'], allergensDeclared: true },
   { name: 'Chicken Burger Classic', category: 'Chicken Burger' },
   { name: 'Crispy Chicken Burger', category: 'Chicken Burger' },
-  { name: 'Beyond Cheeseburger', category: 'Beyond Meat Burger' },
+  { name: 'Beyond Cheeseburger', category: 'Beyond Meat Burger', allergens: ['Cereals containing gluten', 'Soy', 'Milk'], allergensDeclared: true },
   { name: 'Beyond Chili Burger', category: 'Beyond Meat Burger' },
   { name: 'Rap Beev Burger', category: 'Vegetarian Burgers' },
   { name: 'Veggie Burger Classic', category: 'Vegetarian Burgers' },
-  { name: 'Fritten', category: 'Snacks' },
-  { name: 'Super Cheese Fries', category: 'Snacks' },
-  { name: 'Nutty Fries', category: 'Snacks' },
+  { name: 'Fritten', category: 'Snacks', allergens: [], allergensDeclared: true, description: 'Crispy golden fries, lightly salted.' },
+  { name: 'Super Cheese Fries', category: 'Snacks', allergens: ['Milk'], allergensDeclared: true },
+  { name: 'Nutty Fries', category: 'Snacks', allergens: ['Nuts', 'Milk'], allergensDeclared: true },
   { name: 'Hood Fries', category: 'Snacks' },
-  { name: 'Chicken Nuggets', category: 'Snacks' },
-  { name: 'Triple Chocolate Cookie', category: 'Cookies' },
-  { name: 'Macadamia White Chocolate Cookie', category: 'Cookies' },
-  { name: 'Tomato Ketchup', category: 'Extras' },
-  { name: 'Mayonnaise', category: 'Extras' },
-  { name: 'Vegan Mayonnaise', category: 'Extras' },
+  { name: 'Chicken Nuggets', category: 'Snacks', allergens: ['Cereals containing gluten', 'Eggs'], allergensDeclared: true },
+  { name: 'Triple Chocolate Cookie', category: 'Cookies', allergens: ['Cereals containing gluten', 'Milk', 'Eggs', 'Soy'], allergensDeclared: true },
+  { name: 'Macadamia White Chocolate Cookie', category: 'Cookies', allergens: ['Cereals containing gluten', 'Milk', 'Eggs', 'Nuts'], allergensDeclared: true },
+  { name: 'Tomato Ketchup', category: 'Extras', allergens: [], allergensDeclared: true },
+  { name: 'Mayonnaise', category: 'Extras', allergens: ['Eggs', 'Mustard'], allergensDeclared: true },
+  { name: 'Vegan Mayonnaise', category: 'Extras', allergens: ['Soy'], allergensDeclared: true },
   { name: 'BBQ Sauce', category: 'Extras' },
   { name: 'Chili Sauce', category: 'Extras' },
-  { name: 'Coca-Cola', category: 'Non-Alcoholic Drinks' },
-  { name: 'Coca-Cola Zero', category: 'Non-Alcoholic Drinks' },
-  { name: 'Fanta', category: 'Non-Alcoholic Drinks' },
-  { name: 'Sprite', category: 'Non-Alcoholic Drinks' },
-  { name: 'Still Water', category: 'Non-Alcoholic Drinks' },
-  { name: 'Sparkling Water', category: 'Non-Alcoholic Drinks' },
+  { name: 'Coca-Cola', category: 'Non-Alcoholic Drinks', allergens: [], allergensDeclared: true },
+  { name: 'Coca-Cola Zero', category: 'Non-Alcoholic Drinks', allergens: [], allergensDeclared: true },
+  { name: 'Fanta', category: 'Non-Alcoholic Drinks', allergens: [], allergensDeclared: true },
+  { name: 'Sprite', category: 'Non-Alcoholic Drinks', allergens: [], allergensDeclared: true },
+  { name: 'Still Water', category: 'Non-Alcoholic Drinks', allergens: [], allergensDeclared: true },
+  { name: 'Sparkling Water', category: 'Non-Alcoholic Drinks', allergens: [], allergensDeclared: true },
 ];
 
 /** Default price by category for RX items. */
 function defaultPriceForCategory(category: string): string {
-  if (category.includes('Burger')) return '$ 9.99';
-  if (category === 'Snacks') return '$ 4.49';
-  if (category === 'Cookies') return '$ 2.99';
-  if (category === 'Extras') return '$ 0.49';
-  if (category === 'Non-Alcoholic Drinks') return '$ 2.49';
-  return '$ 5.99';
+  if (category.includes('Burger')) return '€ 9.99';
+  if (category === 'Snacks') return '€ 4.49';
+  if (category === 'Cookies') return '€ 2.99';
+  if (category === 'Extras') return '€ 0.49';
+  if (category === 'Non-Alcoholic Drinks') return '€ 2.49';
+  return '€ 5.99';
 }
 
 /** RX initial product list. */
@@ -124,6 +126,9 @@ export function getInitialProductsDataRX(): Product[] {
       status: 'Active' as const,
       image: RX_IMAGE_BY_NAME[item.name] ?? rxPlaceholder,
       brand: 'Burgeramt Prenzlauer Berg',
+      ...(item.allergens !== undefined && { allergens: item.allergens }),
+      ...(item.allergensDeclared !== undefined && { allergensDeclared: item.allergensDeclared }),
+      ...(item.description !== undefined && { description: item.description }),
     })
   );
 
