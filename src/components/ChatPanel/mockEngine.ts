@@ -74,6 +74,43 @@ function buildChecklistCard(ctx: ChatContext): ChatMessage {
   };
 }
 
+/** Build verification checklist card */
+function buildVerificationChecklist(status: { businessDetails: boolean; people: boolean; tax: boolean; bank: boolean }): ChatMessage {
+  const completedCount = [status.businessDetails, status.people, status.tax, status.bank].filter(Boolean).length;
+  const items: MessageDataItem[] = [
+    {
+      id: 'guide-business-details',
+      name: `${status.businessDetails ? '✓' : '○'} Confirm business details`,
+      detail: status.businessDetails ? 'Complete' : 'Review & confirm',
+      actionLabel: status.businessDetails ? undefined : 'Start',
+    },
+    {
+      id: 'guide-people',
+      name: `${status.people ? '✓' : '○'} People connected to your business`,
+      detail: status.people ? 'Complete' : 'Add UBO & representatives',
+      actionLabel: status.people ? undefined : 'Start',
+    },
+    {
+      id: 'guide-tax',
+      name: `${status.tax ? '✓' : '○'} Tax information`,
+      detail: status.tax ? 'Complete' : 'Add board members',
+      actionLabel: status.tax ? undefined : 'Start',
+    },
+    {
+      id: 'guide-bank',
+      name: `${status.bank ? '✓' : '○'} Bank information`,
+      detail: status.bank ? 'Complete' : 'Add board members',
+      actionLabel: status.bank ? undefined : 'Start',
+    },
+  ];
+  return {
+    id: msgId(), role: 'ai', type: 'suggestion-card', timestamp: Date.now(),
+    text: `Verification progress (${completedCount}/4)`,
+    items,
+    progress: Math.round((completedCount / 4) * 100),
+  };
+}
+
 /** Generate the proactive greeting messages for a given context */
 export function getGreeting(ctx: ChatContext): ChatMessage[] {
   const now = Date.now();
@@ -154,6 +191,39 @@ export function getGreeting(ctx: ChatContext): ChatMessage[] {
     }];
   }
 
+  if (ctx.page === 'settings-verification') {
+    const status = ctx.verificationStatus ?? { businessDetails: false, people: false, tax: false, bank: false };
+    const completedCount = [status.businessDetails, status.people, status.tax, status.bank].filter(Boolean).length;
+
+    if (ctx.fromOnboarding) {
+      const msgs: ChatMessage[] = [{
+        id: msgId(), role: 'ai', type: 'text', timestamp: now,
+        text: `Let's verify your business! As an EU-based merchant, you need to confirm your details to comply with local regulations. Here's what we need to complete:`,
+      }];
+      msgs.push(buildVerificationChecklist(status));
+      if (completedCount === 0) {
+        msgs.push({
+          id: msgId(), role: 'ai', type: 'text', timestamp: now + 2,
+          text: `Let's start with your business details — most of this should already be pre-filled from your registration.`,
+          actions: [{ label: 'Start with business details', actionId: 'guide-business-details' }],
+        });
+      }
+      return msgs;
+    }
+
+    if (completedCount < 4) {
+      return [{
+        id: msgId(), role: 'ai', type: 'text', timestamp: now,
+        text: `You have ${4 - completedCount} verification section${4 - completedCount > 1 ? 's' : ''} left to complete. I can help explain what's needed for each one.`,
+        actions: [{ label: 'Show checklist', actionId: 'verify-checklist' }],
+      }];
+    }
+    return [{
+      id: msgId(), role: 'ai', type: 'text', timestamp: now,
+      text: `Your business verification is complete! All sections have been submitted.`,
+    }];
+  }
+
   return [{
     id: msgId(), role: 'ai', type: 'text', timestamp: now,
     text: `Hi! I'm your AI assistant. I can help with menu compliance, allergen declarations, and getting your store live. What can I help with?`,
@@ -179,6 +249,14 @@ export function getSuggestedChips(ctx: ChatContext): SuggestedChip[] {
     if (missingImages > 0) chips.push({ label: 'Missing images', actionId: 'show-no-images' });
     chips.push({ label: 'German food laws', actionId: 'regulations' });
     return chips;
+  }
+  if (ctx.page === 'settings-verification') {
+    if (ctx.fromOnboarding) return [];
+    return [
+      { label: 'What documents do I need?', actionId: 'verify-documents' },
+      { label: 'What is a UBO?', actionId: 'verify-ubo' },
+      { label: 'Help me with tax info', actionId: 'verify-tax-help' },
+    ];
   }
   if (ctx.page === 'product-detail') {
     return [
@@ -368,6 +446,135 @@ export function generateResponse(
     }];
   }
 
+  // ─── VERIFICATION GUIDED FLOW ───
+
+  if (actionId === 'verify-checklist') {
+    const status = ctx.verificationStatus ?? { businessDetails: false, people: false, tax: false, bank: false };
+    return [buildVerificationChecklist(status)];
+  }
+
+  if (actionId === 'guide-business-details') {
+    return [{
+      id: msgId(), role: 'ai', type: 'text', timestamp: now,
+      text: `**Business details**\n\nPlease review and confirm your registered business information. This includes:\n\n• **Registered business name** — your official company name\n• **Business ID** — your Handelsregisternummer (HRB)\n• **Registered address** — where your business is officially registered\n• **Legal form** — e.g. GmbH, UG, Einzelunternehmen\n• **Registration date** and **Field of industry**\n\nMost fields should be pre-filled from your registration. Just verify they're correct and click **Save**.`,
+      actions: [{ label: 'I\'ve saved this section', actionId: 'verify-saved-business' }],
+    }];
+  }
+
+  if (actionId === 'verify-saved-business') {
+    const status = ctx.verificationStatus ?? { businessDetails: false, people: false, tax: false, bank: false };
+    const updated = { ...status, businessDetails: true };
+    const msgs: ChatMessage[] = [
+      { id: msgId(), role: 'ai', type: 'action-confirmation', timestamp: now, text: `✓ Business details confirmed!` },
+      buildVerificationChecklist(updated),
+    ];
+    if (!status.people) {
+      msgs.push({
+        id: msgId(), role: 'ai', type: 'text', timestamp: now + 2,
+        text: `Next: You need to report people connected to your business. Under EU Anti-Money Laundering (AML) regulations, you must declare all Ultimate Beneficial Owners (UBOs) and company representatives.`,
+        actions: [{ label: 'Continue to people', actionId: 'guide-people' }],
+      });
+    }
+    return msgs;
+  }
+
+  if (actionId === 'guide-people') {
+    return [{
+      id: msgId(), role: 'ai', type: 'text', timestamp: now,
+      text: `**People connected to your business**\n\nUnder EU AML/KYC regulations, you must report:\n\n• **Ultimate Beneficial Owner (UBO)** — any person holding 25%+ shares or decision-making authority\n• **Company representative** — anyone with legal right to represent the company\n• **Board member** — members of the Board of Directors\n\nFor each person, provide their name, citizenship, date of birth, country of residence, and national ID number. Click **Save** when done.`,
+      actions: [{ label: 'I\'ve saved this section', actionId: 'verify-saved-people' }],
+    }];
+  }
+
+  if (actionId === 'verify-saved-people') {
+    const status = ctx.verificationStatus ?? { businessDetails: false, people: false, tax: false, bank: false };
+    const updated = { ...status, people: true };
+    const msgs: ChatMessage[] = [
+      { id: msgId(), role: 'ai', type: 'action-confirmation', timestamp: now, text: `✓ People connected saved!` },
+      buildVerificationChecklist(updated),
+    ];
+    if (!status.tax) {
+      msgs.push({
+        id: msgId(), role: 'ai', type: 'text', timestamp: now + 2,
+        text: `Next up: Tax information. You'll need to add board members for tax compliance purposes.`,
+        actions: [{ label: 'Continue to tax', actionId: 'guide-tax' }],
+      });
+    }
+    return msgs;
+  }
+
+  if (actionId === 'guide-tax') {
+    return [{
+      id: msgId(), role: 'ai', type: 'text', timestamp: now,
+      text: `**Tax information**\n\nFor tax compliance, provide details of your board members:\n\n• **Full name** of each board member\n• **Date of birth**\n• **National ID number**\n\nYou can add multiple board members using the "+ Board member" button. Click **Save** when done.`,
+      actions: [{ label: 'I\'ve saved this section', actionId: 'verify-saved-tax' }],
+    }];
+  }
+
+  if (actionId === 'verify-saved-tax') {
+    const status = ctx.verificationStatus ?? { businessDetails: false, people: false, tax: false, bank: false };
+    const updated = { ...status, tax: true };
+    const msgs: ChatMessage[] = [
+      { id: msgId(), role: 'ai', type: 'action-confirmation', timestamp: now, text: `✓ Tax information saved!` },
+      buildVerificationChecklist(updated),
+    ];
+    if (!status.bank) {
+      msgs.push({
+        id: msgId(), role: 'ai', type: 'text', timestamp: now + 2,
+        text: `Last section: Bank information. Same as tax — add your board members for banking compliance.`,
+        actions: [{ label: 'Continue to bank', actionId: 'guide-bank' }],
+      });
+    }
+    return msgs;
+  }
+
+  if (actionId === 'guide-bank') {
+    return [{
+      id: msgId(), role: 'ai', type: 'text', timestamp: now,
+      text: `**Bank information**\n\nFor banking compliance, provide details of your board members:\n\n• **Full name**\n• **Date of birth**\n• **National ID number**\n\nThese are the same fields as the tax section. Add as many board members as needed and click **Save**.`,
+      actions: [{ label: 'I\'ve saved this section', actionId: 'verify-saved-bank' }],
+    }];
+  }
+
+  if (actionId === 'verify-saved-bank') {
+    const status = ctx.verificationStatus ?? { businessDetails: false, people: false, tax: false, bank: false };
+    const updated = { ...status, bank: true };
+    const msgs: ChatMessage[] = [
+      { id: msgId(), role: 'ai', type: 'action-confirmation', timestamp: now, text: `✓ Bank information saved!` },
+      buildVerificationChecklist(updated),
+      {
+        id: msgId(), role: 'ai', type: 'text', timestamp: now + 2,
+        text: `All verification sections are complete! Your business details have been submitted for review. You can go back to the onboarding page to continue with the remaining setup.`,
+        actions: [{ label: 'Back to onboarding', actionId: 'navigate-home' }],
+      },
+    ];
+    return msgs;
+  }
+
+  // Verification: What documents do I need?
+  if (actionId === 'verify-documents') {
+    return [{
+      id: msgId(), role: 'ai', type: 'text', timestamp: now,
+      text: `To complete business verification, you'll typically need:\n\n• **Business registration certificate** (Handelsregisterauszug)\n• **National ID or passport** for UBOs and representatives\n• **Tax ID number** (Steuernummer)\n• **Proof of address** for the business\n\nHave these ready and I'll guide you through each section.`,
+    }];
+  }
+
+  // Verification: What is a UBO?
+  if (actionId === 'verify-ubo' || (lower.includes('ubo') || (lower.includes('ultimate') && lower.includes('beneficial')))) {
+    return [{
+      id: msgId(), role: 'ai', type: 'text', timestamp: now,
+      text: `**UBO = Ultimate Beneficial Owner**\n\nUnder EU Anti-Money Laundering Directive (AMLD), a UBO is any natural person who:\n\n• Holds **25% or more** of the shares or voting rights\n• Has the **sole decision-making authority** of the company\n• Otherwise exercises **control** over the management\n\nAll UBOs must be declared during business verification. If no individual meets these criteria, the senior managing official is listed instead.`,
+    }];
+  }
+
+  // Verification: Tax help
+  if (actionId === 'verify-tax-help') {
+    return [{
+      id: msgId(), role: 'ai', type: 'text', timestamp: now,
+      text: `For the **Tax section**, you need to list all board members (Vorstandsmitglieder or Geschäftsführer). For each person, provide:\n\n• Full legal name\n• Date of birth\n• National ID number\n\nThis is required for tax transparency and anti-fraud regulations in Germany. You can add multiple board members.`,
+    }];
+  }
+
   // ─── NON-GUIDED (STANDARD) RESPONSES ───
 
   // Allergen regulation question
@@ -524,6 +731,10 @@ export function getBadgeCount(ctx: ChatContext): number {
   }
   if (ctx.page === 'onboarding') {
     return (ctx.onboardingTasks ?? []).filter((t) => !t.done).length;
+  }
+  if (ctx.page === 'settings-verification') {
+    const status = ctx.verificationStatus ?? { businessDetails: false, people: false, tax: false, bank: false };
+    return [status.businessDetails, status.people, status.tax, status.bank].filter((v) => !v).length;
   }
   if (ctx.page === 'product-detail' && ctx.currentProduct) {
     const p = ctx.currentProduct;

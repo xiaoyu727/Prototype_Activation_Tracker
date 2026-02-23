@@ -1,0 +1,1 @@
+export { SettingsVerificationPage } from './SettingsVerificationPage';

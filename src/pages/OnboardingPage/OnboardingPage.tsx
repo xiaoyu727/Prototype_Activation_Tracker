@@ -34,6 +34,8 @@ import EditLineSvg from '../../icons/16/edit-line.svg';
 import CaretDownSvg from '../../icons/16/caret-down.svg';
 import PersonPlusSvg from '../../icons/24/person-plus.svg';
 import CloseSvg from '../../icons/24/close.svg';
+import CalendarLineSvg from '../../icons/24/calendar-line.svg';
+import LinkExternalLineSvg from '../../icons/24/link-external-line.svg';
 import PersonUserFillSvg from '../../icons/24/person-user-fill.svg';
 import LockedLineSvg from '../../icons/24/locked-line.svg';
 import CaretRightSvg from '../../icons/24/caret-right.svg';
@@ -41,6 +43,14 @@ import mapBobaBloom from '../../images/map-boba-bloom.png';
 import LogoDoordashSvg from '../../icons/16/logo-doordash.svg';
 import VehicleCarSvg from '../../icons/16/vehicle-car.svg';
 import VenueSvg from '../../icons/16/venue.svg';
+import ArrowUpRightSvg from '../../icons/16/arrow-up-right.svg';
+import MerchantLineSvg from '../../icons/16/merchant-line.svg';
+import WarningLineSvg from '../../icons/16/warning-line.svg';
+import CheckSvg from '../../icons/16/check.svg';
+
+type TabletDeliveryStatus = 'ordered' | 'in-transit' | 'out-for-delivery' | 'delivered' | 'activated' | 'delayed';
+const TABLET_DEMO_SEQUENCE: TabletDeliveryStatus[] = ['ordered', 'in-transit', 'out-for-delivery', 'delivered', 'activated'];
+const DEMO_STEP_DELAY = 2000;
 import StarFillSvg from '../../icons/16/star-fill.svg';
 import TvLineSvg from '../../icons/16/tv-line.svg';
 import DevicePhoneSvg from '../../icons/16/device-phone.svg';
@@ -52,6 +62,7 @@ import InfoLine24Svg from '../../icons/24/info-line.svg';
 import CalendarAddFillSvg from '../../icons/24/calendar-add-fill.svg';
 import imgPlaceholder from '../../images/img_placeholder.png';
 import bobaBloomCover from '../../images/boba-bloom-cover.png';
+import callWidgetCard from '../../images/call-widget-card.png';
 import bobaBloomLogo from '../../images/boba-bloom-logo.png';
 import { SegmentedControl } from '../../components/SegmentedControl';
 import { getBadgeCount } from '../../components/ChatPanel';
@@ -68,7 +79,7 @@ function SidebarIcon({ src }: { src: string }) {
   );
 }
 
-const ONBOARDING_TASKS = [
+const ONBOARDING_TASKS_INITIAL = [
   { id: 'store', label: 'Set up your store', time: '5 min', done: true },
   { id: 'menu', label: 'Set up your menu', time: '8 min', done: false },
   { id: 'verify', label: 'Verify your business', time: '8 min', done: false },
@@ -170,6 +181,16 @@ function getCalendarDays(monthStart: Date): (Date | null)[] {
   return cells;
 }
 
+function getOrdinalSuffix(day: number): string {
+  if (day >= 11 && day <= 13) return 'th';
+  switch (day % 10) {
+    case 1: return 'st';
+    case 2: return 'nd';
+    case 3: return 'rd';
+    default: return 'th';
+  }
+}
+
 function formatScheduledDate(d: Date): string {
   return `${DAY_NAMES[d.getDay()]}, ${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
 }
@@ -247,8 +268,27 @@ export const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { expanded: sidebarExpanded, setExpanded: setSidebarExpanded } = useSidebarState();
-  const venueFromNav = (location.state as { venue?: Venue } | null)?.venue;
+  const navState = location.state as { venue?: Venue; menuDone?: boolean } | null;
+  const venueFromNav = navState?.venue;
   const [venue, setVenue] = useState<Venue>(venueFromNav ?? 'NV');
+  const menuJustCompleted = navState?.menuDone === true;
+  const [tasks, setTasks] = useState(() =>
+    ONBOARDING_TASKS_INITIAL.map(t => ({ ...t })),
+  );
+  // 'idle' → 'fade-out' (dot shrinks) → 'fade-in' (check appears) → 'done' (static)
+  const [animPhase, setAnimPhase] = useState<'idle' | 'fade-out' | 'fade-in' | 'done'>('idle');
+
+  useEffect(() => {
+    if (!menuJustCompleted) return;
+    const t1 = setTimeout(() => setAnimPhase('fade-out'), 400);
+    const t2 = setTimeout(() => {
+      setTasks(prev => prev.map(t => t.id === 'menu' ? { ...t, done: true } : t));
+      setAnimPhase('fade-in');
+    }, 700);
+    const t3 = setTimeout(() => setAnimPhase('done'), 1400);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, [menuJustCompleted]);
+
   const [previewView, setPreviewView] = useState<'tv' | 'phone'>('phone');
   // Animation state for expand/collapse: 'closed' | 'opening' | 'open' | 'closing'
   const [overlayState, setOverlayState] = useState<'closed' | 'opening' | 'open' | 'closing'>('closed');
@@ -298,6 +338,9 @@ export const OnboardingPage: React.FC = () => {
   // Ref + measured height for left column so preview matches its height
   const leftColRef = useRef<HTMLDivElement>(null);
   const [leftColHeight, setLeftColHeight] = useState<number | undefined>(undefined);
+  const [tabletStatus, setTabletStatus] = useState<TabletDeliveryStatus>('ordered');
+  const tabletDemoRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const tabletDemoRunning = useRef(false);
   useEffect(() => {
     if (!leftColRef.current) return;
     const ro = new ResizeObserver(([entry]) => {
@@ -338,7 +381,7 @@ export const OnboardingPage: React.FC = () => {
 
   const chatContext: ChatContext = {
     page: 'onboarding',
-    onboardingTasks: ONBOARDING_TASKS.map((t) => ({ id: t.id, label: t.label, done: t.done })),
+    onboardingTasks: tasks.map((t) => ({ id: t.id, label: t.label, done: t.done })),
   };
   const chatBadgeCount = getBadgeCount(chatContext);
 
@@ -517,22 +560,44 @@ export const OnboardingPage: React.FC = () => {
                   </div>
 
                   <List>
-                    {ONBOARDING_TASKS.map((task) => (
+                    {tasks.map((task) => (
                       <ListCell
                         key={task.id}
                         label={task.label}
                         description={task.time}
                         leadingIcon={
                           task.done ? (
-                            <img src={CheckCircleFillSvg} alt="Completed" style={{ width: 24, height: 24, flexShrink: 0 }} />
+                            <div style={{ width: 24, height: 24, flexShrink: 0, position: 'relative' }}>
+                              {animPhase === 'fade-in' && task.id === 'menu' ? (
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ animation: 'checkPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards' }}>
+                                  <circle cx="12" cy="12" r="10" fill="#327A34" />
+                                  <path d="M7.5 12.5L10.5 15.5L16.5 9.5" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                                    style={{ strokeDasharray: 14, strokeDashoffset: 14, animation: 'checkDraw 0.35s ease-out 0.15s forwards' }} />
+                                </svg>
+                              ) : (
+                                <img src={CheckCircleFillSvg} alt="Completed" style={{ width: 24, height: 24 }} />
+                              )}
+                            </div>
                           ) : (
-                            <img src={StatusDotOpenSvg} alt="To do" style={{ width: 24, height: 24, flexShrink: 0 }} />
+                            <div style={{ width: 24, height: 24, flexShrink: 0, position: 'relative' }}>
+                              <img
+                                src={StatusDotOpenSvg}
+                                alt="To do"
+                                style={{
+                                  width: 24, height: 24,
+                                  transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
+                                  ...(animPhase === 'fade-out' && task.id === 'menu'
+                                    ? { transform: 'scale(0.3)', opacity: 0 }
+                                    : { transform: 'scale(1)', opacity: 1 }),
+                                }}
+                              />
+                            </div>
                           )
                         }
                         trailingIcon={
                           <img src={ChevronRightSvg} alt="" style={{ width: 16, height: 16, flexShrink: 0 }} />
                         }
-                        onClick={() => { if (task.id === 'menu') navigate('/menu', { state: { venue, openChat: true } }); if (task.id === 'orders') setOrderModalOpen(true); }}
+                        onClick={() => { if (task.id === 'store') navigate('/settings/store', { state: { venue } }); if (task.id === 'menu') navigate('/menu', { state: { venue, openChat: true } }); if (task.id === 'verify') navigate('/settings/verification', { state: { venue, openChat: true } }); if (task.id === 'orders') setOrderModalOpen(true); }}
                       />
                     ))}
                   </List>
@@ -542,7 +607,211 @@ export const OnboardingPage: React.FC = () => {
                   </Button>
                 </div>
 
-                {/* Your tablet has been ordered */}
+                {/* Tablet delivery tracker — click to cycle status */}
+                {(() => {
+                  const isDelayed = tabletStatus === 'delayed';
+                  const step2Active = tabletStatus !== 'ordered';
+                  const step3Active = tabletStatus === 'delivered' || tabletStatus === 'activated';
+                  const isActivated = tabletStatus === 'activated';
+
+                  const titleMap: Record<TabletDeliveryStatus, string> = {
+                    'ordered': 'Your tablet has been ordered',
+                    'in-transit': 'Your tablet is on the way',
+                    'out-for-delivery': 'Your tablet arrives today',
+                    'delivered': 'Your tablet has been delivered!',
+                    'activated': 'Your tablet has been activated!',
+                    'delayed': 'Your tablet is delayed',
+                  };
+                  const subtitleMap: Record<TabletDeliveryStatus, string | null> = {
+                    'ordered': 'You\u2019ll need this to start taking orders',
+                    'in-transit': 'Tracking number',
+                    'out-for-delivery': 'Between 10:37am \u2013 11:37am',
+                    'delivered': null,
+                    'activated': null,
+                    'delayed': 'Tracking number',
+                  };
+                  const showArrow = !step3Active;
+                  const showGreenDot = tabletStatus === 'out-for-delivery';
+                  const subtitle = subtitleMap[tabletStatus];
+                  const hasTracking = subtitle === 'Tracking number';
+
+                  const trackFillPct = step3Active ? 100 : isDelayed ? 50 : step2Active ? 75 : 25;
+
+                  const step2Icon = isDelayed ? WarningLineSvg : VehicleCarSvg;
+                  const step3Icon = isActivated ? CheckSvg : MerchantLineSvg;
+                  const step3Bg = isActivated ? '#00A352' : step3Active ? '#191919' : '#F1F1F1';
+                  const step2Bg = isDelayed ? '#E03B31' : step2Active ? '#191919' : '#F1F1F1';
+
+                  const labelStyle = {
+                    margin: 0,
+                    fontFamily: tokens.usage.typography.label.medium.strong.fontFamily,
+                    fontSize: tokens.usage.typography.label.medium.strong.fontSize,
+                    fontWeight: tokens.usage.typography.label.medium.strong.fontWeight,
+                    lineHeight: `${tokens.usage.typography.label.medium.strong.lineHeight}px`,
+                    letterSpacing: `${tokens.usage.typography.label.medium.strong.letterSpacing}px`,
+                    color: '#202125',
+                  };
+                  const subStyle = {
+                    margin: 0,
+                    fontFamily: tokens.usage.typography.label.small.default.fontFamily,
+                    fontSize: tokens.usage.typography.label.small.default.fontSize,
+                    fontWeight: tokens.usage.typography.label.small.default.fontWeight,
+                    lineHeight: `${tokens.usage.typography.label.small.default.lineHeight}px`,
+                    letterSpacing: `${tokens.usage.typography.label.small.default.letterSpacing}px`,
+                    color: '#606060',
+                  };
+                  const circleBase: React.CSSProperties = {
+                    position: 'relative',
+                    width: 32,
+                    height: 32,
+                    borderRadius: 9999,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    overflow: 'hidden',
+                    transition: 'background-color 0.4s ease',
+                  };
+
+                  return (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: 24,
+                        backgroundColor: '#FFFFFF',
+                        borderRadius: 32,
+                        cursor: 'pointer',
+                        overflow: 'clip',
+                      }}
+                      onClick={() => {
+                        if (tabletDemoRunning.current) return;
+                        tabletDemoRunning.current = true;
+                        let step = 0;
+                        const advance = () => {
+                          step++;
+                          if (step < TABLET_DEMO_SEQUENCE.length) {
+                            setTabletStatus(TABLET_DEMO_SEQUENCE[step]);
+                            tabletDemoRef.current = setTimeout(advance, DEMO_STEP_DELAY);
+                          } else {
+                            tabletDemoRunning.current = false;
+                            tabletDemoRef.current = setTimeout(() => {
+                              setTabletStatus('ordered');
+                              tabletDemoRunning.current = false;
+                            }, 3000);
+                          }
+                        };
+                        setTabletStatus(TABLET_DEMO_SEQUENCE[0]);
+                        tabletDemoRef.current = setTimeout(advance, DEMO_STEP_DELAY);
+                      }}
+                    >
+                      <div style={{ flex: '1 0 0', display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
+                        {/* Title + subtitle */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              {showGreenDot && (
+                                <span style={{ width: 12, height: 12, borderRadius: 9999, backgroundColor: '#00A352', flexShrink: 0 }} />
+                              )}
+                              <p style={labelStyle}>{titleMap[tabletStatus]}</p>
+                            </div>
+                            {showArrow && <img src={ArrowUpRightSvg} alt="" style={{ width: 16, height: 16, flexShrink: 0 }} />}
+                          </div>
+                          {subtitle && (
+                            <p style={subStyle}>
+                              {hasTracking ? (
+                                <>Tracking number{' '}<span style={{ textDecoration: 'underline' }}>1Z 3RA 349 20 0158956 5.</span></>
+                              ) : subtitle}
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Timeline tracker */}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+                          {/* Track background */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              top: '50%',
+                              left: 16,
+                              right: 16,
+                              height: 4,
+                              transform: 'translateY(-50%)',
+                              backgroundColor: '#F1F1F1',
+                              borderRadius: 2,
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {/* Black fill — transitions smoothly between statuses */}
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: 0,
+                                left: 0,
+                                height: '100%',
+                                borderRadius: 2,
+                                backgroundColor: '#191919',
+                                width: `${trackFillPct}%`,
+                                transition: 'width 1s ease-out',
+                              }}
+                            />
+                            {/* Red overlay for delayed */}
+                            {isDelayed && (
+                              <div
+                                key="delayed-red"
+                                style={{
+                                  position: 'absolute',
+                                  top: 0,
+                                  left: '50%',
+                                  height: '100%',
+                                  backgroundColor: '#E03B31',
+                                  borderRadius: '0 2px 2px 0',
+                                  animation: 'tabletTrackDelayed 0.8s 0.4s ease-out forwards',
+                                  width: 0,
+                                }}
+                              />
+                            )}
+                          </div>
+
+                          {/* Step 1: DoorDash (always completed) */}
+                          <div style={{ ...circleBase, backgroundColor: '#191919' }}>
+                            <img src={LogoDoordashSvg} alt="" style={{ width: 16, height: 16 }} />
+                          </div>
+
+                          {/* Step 2: Car / Warning */}
+                          <div style={{ ...circleBase, backgroundColor: step2Bg }}>
+                            <img
+                              src={step2Icon}
+                              alt=""
+                              style={{
+                                width: 16,
+                                height: 16,
+                                filter: (isDelayed || step2Active) ? 'brightness(0) invert(1)' : 'none',
+                                transition: 'filter 0.4s ease',
+                              }}
+                            />
+                          </div>
+
+                          {/* Step 3: Merchant / Check */}
+                          <div style={{ ...circleBase, backgroundColor: step3Bg }}>
+                            <img
+                              src={step3Icon}
+                              alt=""
+                              style={{
+                                width: 16,
+                                height: 16,
+                                filter: (step3Active || isActivated) ? 'brightness(0) invert(1)' : 'none',
+                                transition: 'filter 0.4s ease',
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* We'll call you soon / Call scheduled widget */}
                 <div
                   style={{
                     display: 'flex',
@@ -551,174 +820,96 @@ export const OnboardingPage: React.FC = () => {
                     padding: 24,
                     backgroundColor: '#FFFFFF',
                     borderRadius: 32,
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => setOrderModalOpen(true)}
-                >
-                  {/* Title + description */}
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontFamily: tokens.usage.typography.label.medium.strong.fontFamily,
-                        fontSize: tokens.usage.typography.label.medium.strong.fontSize,
-                        fontWeight: tokens.usage.typography.label.medium.strong.fontWeight,
-                        lineHeight: `${tokens.usage.typography.label.medium.strong.lineHeight}px`,
-                        letterSpacing: `${tokens.usage.typography.label.medium.strong.letterSpacing}px`,
-                        color: '#202125',
-                      }}
-                    >
-                      Your tablet has been ordered
-                    </p>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontFamily: tokens.usage.typography.body.small.default.fontFamily,
-                        fontSize: tokens.usage.typography.body.small.default.fontSize,
-                        fontWeight: tokens.usage.typography.body.small.default.fontWeight,
-                        lineHeight: `${tokens.usage.typography.body.small.default.lineHeight}px`,
-                        letterSpacing: `${tokens.usage.typography.body.small.default.letterSpacing}px`,
-                        color: tokens.semantic.colors.text.subdued,
-                      }}
-                    >
-                      Once it&apos;s shipped, you&apos;ll see updates here
-                    </p>
-                  </div>
-
-                  {/* Timeline tracker */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
-                    {/* Track line behind the circles */}
-                    <div
-                      style={{
-                        position: 'absolute',
-                        top: '50%',
-                        left: 16,
-                        right: 16,
-                        height: 4,
-                        transform: 'translateY(-50%)',
-                        display: 'flex',
-                      }}
-                    >
-                      {/* Filled portion (step 1 completed) */}
-                      <div style={{ flex: 1, backgroundColor: '#191919', borderRadius: '2px 0 0 2px' }} />
-                      {/* Unfilled portion */}
-                      <div style={{ flex: 3, backgroundColor: '#F1F1F1', borderRadius: '0 2px 2px 0' }} />
-                    </div>
-
-                    {/* Step 1: DoorDash (completed) */}
-                    <div
-                      style={{
-                        position: 'relative',
-                        width: 32,
-                        height: 32,
-                        borderRadius: 9999,
-                        backgroundColor: '#191919',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <img src={LogoDoordashSvg} alt="" style={{ width: 16, height: 16 }} />
-                    </div>
-
-                    {/* Step 2: Car / shipping (pending) */}
-                    <div
-                      style={{
-                        position: 'relative',
-                        width: 32,
-                        height: 32,
-                        borderRadius: 9999,
-                        backgroundColor: '#F1F1F1',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <img src={VehicleCarSvg} alt="" style={{ width: 16, height: 16 }} />
-                    </div>
-
-                    {/* Step 3: Venue / delivered (pending) */}
-                    <div
-                      style={{
-                        position: 'relative',
-                        width: 32,
-                        height: 32,
-                        borderRadius: 9999,
-                        backgroundColor: '#F1F1F1',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                        overflow: 'hidden',
-                      }}
-                    >
-                      <img src={VenueSvg} alt="" style={{ width: 16, height: 16 }} />
-                    </div>
-                  </div>
-                </div>
-
-                {/* We'll call you soon / Call scheduled */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 16,
-                    padding: 24,
-                    backgroundColor: '#FFFFFF',
-                    borderRadius: 32,
                   }}
                 >
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontFamily: tokens.usage.typography.label.medium.strong.fontFamily,
-                        fontSize: tokens.usage.typography.label.medium.strong.fontSize,
-                        fontWeight: tokens.usage.typography.label.medium.strong.fontWeight,
-                        lineHeight: `${tokens.usage.typography.label.medium.strong.lineHeight}px`,
-                        letterSpacing: `${tokens.usage.typography.label.medium.strong.letterSpacing}px`,
-                        color: '#202125',
-                      }}
-                    >
-                      {scheduledCall ? 'Call scheduled' : "We\u2019ll call you soon"}
-                    </p>
-                    <p
-                      style={{
-                        margin: 0,
-                        fontFamily: tokens.usage.typography.body.small.default.fontFamily,
-                        fontSize: tokens.usage.typography.body.small.default.fontSize,
-                        fontWeight: tokens.usage.typography.body.small.default.fontWeight,
-                        lineHeight: `${tokens.usage.typography.body.small.default.lineHeight}px`,
-                        letterSpacing: `${tokens.usage.typography.body.small.default.letterSpacing}px`,
-                        color: tokens.semantic.colors.text.subdued,
-                      }}
-                    >
-                      {scheduledCall
-                        ? `Your call is scheduled for ${formatScheduledDate(scheduledCall.date)} at ${scheduledCall.time}.`
-                        : 'Our team will call you in 2 days to help you get started. Want to pick the time? Schedule a time that works for you.'}
-                    </p>
+                  <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: 0 }}>
+                      <p
+                        style={{
+                          margin: 0,
+                          fontFamily: tokens.usage.typography.label.medium.strong.fontFamily,
+                          fontSize: tokens.usage.typography.label.medium.strong.fontSize,
+                          fontWeight: tokens.usage.typography.label.medium.strong.fontWeight,
+                          lineHeight: `${tokens.usage.typography.label.medium.strong.lineHeight}px`,
+                          letterSpacing: `${tokens.usage.typography.label.medium.strong.letterSpacing}px`,
+                          color: '#202125',
+                        }}
+                      >
+                        {scheduledCall ? 'Call scheduled' : "We\u2019ll call you soon"}
+                      </p>
+                      {scheduledCall ? (
+                        <p
+                          style={{
+                            margin: 0,
+                            fontFamily: tokens.usage.typography.body.small.default.fontFamily,
+                            fontSize: tokens.usage.typography.body.small.default.fontSize,
+                            fontWeight: tokens.usage.typography.body.small.default.fontWeight,
+                            lineHeight: `${tokens.usage.typography.body.small.default.lineHeight}px`,
+                            letterSpacing: `${tokens.usage.typography.body.small.default.letterSpacing}px`,
+                            color: tokens.semantic.colors.text.subdued,
+                          }}
+                        >
+                          Your call is scheduled for{' '}
+                          <span style={{ fontWeight: 700, color: '#191919' }}>
+                            {formatScheduledDate(scheduledCall.date)} at {scheduledCall.time}
+                          </span>
+                          . If something comes up, you can easily reschedule.
+                        </p>
+                      ) : (
+                        <p
+                          style={{
+                            margin: 0,
+                            fontFamily: tokens.usage.typography.body.small.default.fontFamily,
+                            fontSize: tokens.usage.typography.body.small.default.fontSize,
+                            fontWeight: tokens.usage.typography.body.small.default.fontWeight,
+                            lineHeight: `${tokens.usage.typography.body.small.default.lineHeight}px`,
+                            letterSpacing: `${tokens.usage.typography.body.small.default.letterSpacing}px`,
+                            color: tokens.semantic.colors.text.subdued,
+                          }}
+                        >
+                          Our team will call you in 2 days to help you get started. Want to pick the time? Schedule a time that works for you.
+                        </p>
+                      )}
+                    </div>
+                    {/* Decorative photo card */}
+                    <div style={{
+                      width: 90, height: 90, borderRadius: 12,
+                      flexShrink: 0, overflow: 'hidden',
+                    }}>
+                      <img src={callWidgetCard} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
                   </div>
-                  <Button
-                    variant="tertiary"
-                    size="medium"
-                    fullWidth
-                    icon={<img src={CalendarAddFillSvg} alt="" style={{ width: 24, height: 24 }} />}
-                    onClick={() => {
-                      setSelectedDate(scheduledCall?.date ?? null);
-                      setSelectedTime(scheduledCall?.time ?? null);
-                      setScheduleConfirmed(false);
-                      if (scheduledCall) {
+                  {scheduledCall ? (
+                    <Button
+                      variant="tertiary"
+                      size="medium"
+                      fullWidth
+                      onClick={() => {
+                        setSelectedDate(scheduledCall.date);
+                        setSelectedTime(scheduledCall.time);
+                        setScheduleConfirmed(true);
                         setCalendarMonth(new Date(scheduledCall.date.getFullYear(), scheduledCall.date.getMonth(), 1));
-                      }
-                      setScheduleModalOpen(true);
-                    }}
-                  >
-                    {scheduledCall ? 'Reschedule' : 'Schedule a Call'}
-                  </Button>
+                        setScheduleModalOpen(true);
+                      }}
+                    >
+                      View details
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="tertiary"
+                      size="medium"
+                      fullWidth
+                      icon={<img src={CalendarAddFillSvg} alt="" style={{ width: 24, height: 24 }} />}
+                      onClick={() => {
+                        setSelectedDate(null);
+                        setSelectedTime(null);
+                        setScheduleConfirmed(false);
+                        setScheduleModalOpen(true);
+                      }}
+                    >
+                      Schedule a Call
+                    </Button>
+                  )}
                 </div>
               </div>
 
@@ -830,7 +1021,7 @@ export const OnboardingPage: React.FC = () => {
                     <div style={{ position: 'relative', width: '100%', height: previewView === 'phone' ? 451 : 325, backgroundColor: '#B5E3D8', flexShrink: 0, overflow: 'hidden' }}>
                       <img src={bobaBloomCover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 40%' }} />
                       <div style={{ position: 'absolute', top: 27, right: 26 }}>
-                        <Button variant="floating" size="medium" icon={<img src={EditLineSvg} alt="" style={{ width: 16, height: 16 }} />} onClick={() => navigate('/menu')}>
+                        <Button variant="floating" size="medium" icon={<img src={EditLineSvg} alt="" style={{ width: 16, height: 16 }} />} onClick={() => navigate('/settings/store', { state: { venue } })}>
                           Edit store
                         </Button>
                       </div>
@@ -1200,7 +1391,7 @@ export const OnboardingPage: React.FC = () => {
               <div style={{ position: 'relative', width: '100%', height: previewView === 'phone' ? 451 : 325, backgroundColor: '#B5E3D8', flexShrink: 0, overflow: 'hidden' }}>
                 <img src={bobaBloomCover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 40%' }} />
                 <div style={{ position: 'absolute', top: 27, right: 26 }}>
-                  <Button variant="floating" size="medium" icon={<img src={EditLineSvg} alt="" style={{ width: 16, height: 16 }} />} onClick={() => navigate('/menu')}>
+                  <Button variant="floating" size="medium" icon={<img src={EditLineSvg} alt="" style={{ width: 16, height: 16 }} />} onClick={() => navigate('/settings/store', { state: { venue } })}>
                     Edit store
                   </Button>
                 </div>
@@ -1551,11 +1742,11 @@ export const OnboardingPage: React.FC = () => {
                   </div>
                   {/* Step 2: In transit */}
                   <div style={{ position: 'relative', width: 32, height: 32, borderRadius: 9999, backgroundColor: '#F1F1F1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
-                    <img src={VenueSvg} alt="" style={{ width: 16, height: 16 }} />
+                    <img src={VehicleCarSvg} alt="" style={{ width: 16, height: 16 }} />
                   </div>
                   {/* Step 3: Delivered */}
-                  <div style={{ position: 'relative', width: 32, height: 32, borderRadius: 200, backgroundColor: '#F1F1F1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
-                    <img src={VehicleCarSvg} alt="" style={{ width: 16, height: 16 }} />
+                  <div style={{ position: 'relative', width: 32, height: 32, borderRadius: 9999, backgroundColor: '#F1F1F1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
+                    <img src={MerchantLineSvg} alt="" style={{ width: 16, height: 16 }} />
                   </div>
                 </div>
               </div>
@@ -1641,31 +1832,108 @@ export const OnboardingPage: React.FC = () => {
               display: 'flex',
               flexDirection: 'column',
               gap: 24,
-              width: 640,
+              width: 768,
               maxWidth: '90vw',
               maxHeight: '90vh',
-              overflow: 'auto',
+              overflow: 'hidden',
             }}
             onClick={(e) => e.stopPropagation()}
           >
             {scheduleConfirmed ? (
               /* ─── Confirmation state ─── */
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '48px 24px' }}>
-                <div style={{ width: 64, height: 64, borderRadius: 9999, backgroundColor: '#E8F5E9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <img src={CheckCircleFillSvg} alt="" style={{ width: 32, height: 32 }} />
+              <div style={{ display: 'flex', flexDirection: 'column', height: '100%', animation: 'fadeScaleIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) both' }}>
+                {/* Success hero */}
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, padding: '32px 24px 24px' }}>
+                  <div style={{ width: 56, height: 56, borderRadius: 9999, backgroundColor: '#A4C639', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'checkPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both' }}>
+                    <img src={CheckCircleFillSvg} alt="" style={{ width: 28, height: 28, filter: 'brightness(0) invert(1)' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontFamily: tokens.base.typography.fontFamily.brand, fontSize: 20, fontWeight: 700, lineHeight: '24px', color: '#191919' }}>
+                      You&apos;re all set!
+                    </span>
+                    <span style={{ fontFamily: tokens.usage.typography.body.small.default.fontFamily, fontSize: 14, fontWeight: 500, lineHeight: '20px', color: '#606060', textAlign: 'center' }}>
+                      A calendar invitation has been sent to your email address.
+                    </span>
+                  </div>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontFamily: tokens.base.typography.fontFamily.brand, fontSize: 20, fontWeight: 700, lineHeight: '24px', color: '#191919' }}>
-                    You&apos;re all set!
-                  </span>
-                  <span style={{ fontFamily: tokens.usage.typography.body.small.default.fontFamily, fontSize: 14, fontWeight: 500, lineHeight: '20px', color: '#606060', textAlign: 'center' }}>
-                    Your call is scheduled for {selectedDate ? formatScheduledDate(selectedDate) : ''} at {selectedTime}.
-                  </span>
-                  <span style={{ fontFamily: tokens.usage.typography.body.small.default.fontFamily, fontSize: 14, fontWeight: 500, lineHeight: '20px', color: '#606060', textAlign: 'center' }}>
-                    Our team will call you at the phone number on file.
-                  </span>
+
+                {/* Details list (List Cell pattern) */}
+                <div style={{ display: 'flex', flexDirection: 'column', padding: '0 16px', flex: 1 }}>
+                  {/* Host */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, minHeight: 48 }}>
+                    <img src={PersonUserFillSvg} alt="" style={{ width: 24, height: 24, opacity: 0.45, flexShrink: 0 }} />
+                    <div style={{ flex: 1, borderBottom: '1px solid #E7E7E7', padding: '12px 0' }}>
+                      <span style={{ fontFamily: tokens.base.typography.fontFamily.brand, fontSize: 14, fontWeight: 500, lineHeight: '20px', color: '#191919' }}>
+                        Julie Logue, julie.logue@doordash.com
+                      </span>
+                    </div>
+                  </div>
+                  {/* Date & Time */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, minHeight: 48 }}>
+                    <img src={CalendarLineSvg} alt="" style={{ width: 24, height: 24, opacity: 0.45, flexShrink: 0 }} />
+                    <div style={{ flex: 1, borderBottom: '1px solid #E7E7E7', padding: '12px 0' }}>
+                      <span style={{ fontFamily: tokens.base.typography.fontFamily.brand, fontSize: 14, fontWeight: 500, lineHeight: '20px', color: '#191919' }}>
+                        {selectedTime}, {selectedDate ? `${DAY_NAMES[selectedDate.getDay()]} ${MONTH_NAMES[selectedDate.getMonth()].slice(0, 3)} ${selectedDate.getDate()}${getOrdinalSuffix(selectedDate.getDate())}, ${selectedDate.getFullYear()}` : ''}
+                      </span>
+                    </div>
+                  </div>
+                  {/* Zoom link */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, minHeight: 48 }}>
+                    <img src={LinkExternalLineSvg} alt="" style={{ width: 24, height: 24, opacity: 0.45, flexShrink: 0, marginTop: 12 }} />
+                    <div style={{ flex: 1, padding: '12px 0' }}>
+                      <a
+                        href="https://doordash.zoom.us/j/9688684440?pwd=bzJSaWVGWVZOYTBGYTVka1dFdDA1dz09"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          fontFamily: tokens.base.typography.fontFamily.brand, fontSize: 14, fontWeight: 500, lineHeight: '20px',
+                          color: '#191919', textDecoration: 'none', wordBreak: 'break-all',
+                        }}
+                      >
+                        https://doordash.zoom.us/j/9688684440?pwd=bzJSaWVGWVZOYTBGYTVka1dFdDA1dz09
+                      </a>
+                    </div>
+                  </div>
                 </div>
-                <div style={{ marginTop: 8 }}>
+
+                {/* Bottom button group bar (Button Group pattern) */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: 16,
+                  flexShrink: 0,
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScheduleConfirmed(false);
+                      setSelectedDate(null);
+                      setSelectedTime(null);
+                      setScheduledCall(null);
+                      setScheduleModalOpen(false);
+                    }}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      fontFamily: tokens.usage.typography.label.medium.strong.fontFamily,
+                      fontSize: `${tokens.usage.typography.label.medium.strong.fontSize}px`,
+                      fontWeight: tokens.usage.typography.label.medium.strong.fontWeight,
+                      lineHeight: `${tokens.usage.typography.label.medium.strong.lineHeight}px`,
+                      color: '#E03B3B',
+                      padding: `${tokens.component.button.paddingY.medium}px ${tokens.component.button.paddingX.medium}px`,
+                      borderRadius: `${tokens.component.button.borderRadius}px`,
+                    }}
+                  >
+                    Cancel meeting
+                  </button>
+                  <div style={{ flex: 1 }} />
+                  <Button
+                    variant="tertiary"
+                    size="medium"
+                    onClick={() => {
+                      setScheduleConfirmed(false);
+                    }}
+                  >
+                    Re-schedule
+                  </Button>
                   <Button
                     variant="primary"
                     size="medium"
@@ -1687,10 +1955,10 @@ export const OnboardingPage: React.FC = () => {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <span style={{ fontFamily: tokens.base.typography.fontFamily.brand, fontSize: 20, fontWeight: 700, lineHeight: '24px', color: '#191919' }}>
-                      Schedule a call
+                      Schedule a [Zoom] call
                     </span>
                     <span style={{ fontFamily: tokens.usage.typography.body.small.default.fontFamily, fontSize: 14, fontWeight: 500, lineHeight: '20px', color: '#606060' }}>
-                      Pick a date and time that works for you.
+                      Pick a date and time that works for you. All time displayed in your local time zone.
                     </span>
                   </div>
                   <button
@@ -1737,7 +2005,7 @@ export const OnboardingPage: React.FC = () => {
                     </div>
 
                     {/* Day grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2, justifyItems: 'center' }}>
                       {getCalendarDays(calendarMonth).map((day, idx) => {
                         if (!day) return <div key={`empty-${idx}`} style={{ height: 40 }} />;
                         const key = dateKey(day);
@@ -1760,11 +2028,11 @@ export const OnboardingPage: React.FC = () => {
                               alignItems: 'center',
                               justifyContent: 'center',
                               height: 40,
-                              width: '100%',
+                              width: 40,
                               borderRadius: 9999,
                               border: 'none',
                               cursor: isAvailable && !isPast ? 'pointer' : 'default',
-                              backgroundColor: isSelected ? '#191919' : 'transparent',
+                              backgroundColor: isSelected ? '#191919' : (isAvailable && !isPast) ? '#EDEDEE' : 'transparent',
                               color: isSelected ? '#FFFFFF' : (!isAvailable || isPast) ? '#D0D0D0' : '#191919',
                               fontFamily: tokens.base.typography.fontFamily.brand,
                               fontSize: 14,
@@ -1784,11 +2052,11 @@ export const OnboardingPage: React.FC = () => {
                   <div style={{ width: 1, backgroundColor: '#E4E4E4', flexShrink: 0 }} />
 
                   {/* Right column: Time slots */}
-                  <div style={{ width: 200, display: 'flex', flexDirection: 'column', gap: 12, flexShrink: 0 }}>
+                  <div style={{ width: 240, display: 'flex', flexDirection: 'column', gap: 12, flexShrink: 0 }}>
                     {selectedDate ? (
                       <>
                         <span style={{ fontFamily: tokens.base.typography.fontFamily.brand, fontSize: 14, fontWeight: 700, lineHeight: '20px', color: '#191919' }}>
-                          {formatScheduledDate(selectedDate)}
+                          {`${DAY_NAMES[selectedDate.getDay()]}, ${MONTH_NAMES[selectedDate.getMonth()]} ${selectedDate.getDate()}${getOrdinalSuffix(selectedDate.getDate())}`}
                         </span>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, overflowY: 'auto', flex: 1 }}>
                           {TIME_SLOTS.map((slot) => {
@@ -1802,11 +2070,11 @@ export const OnboardingPage: React.FC = () => {
                                   display: 'flex',
                                   alignItems: 'center',
                                   justifyContent: 'center',
-                                  height: 36,
-                                  borderRadius: 10,
+                                  height: 40,
+                                  borderRadius: 9999,
                                   border: isSlotSelected ? '2px solid #191919' : '1px solid #E4E4E4',
-                                  backgroundColor: isSlotSelected ? '#191919' : '#FFFFFF',
-                                  color: isSlotSelected ? '#FFFFFF' : '#191919',
+                                  backgroundColor: '#FFFFFF',
+                                  color: '#191919',
                                   cursor: 'pointer',
                                   fontFamily: tokens.base.typography.fontFamily.brand,
                                   fontSize: 14,
@@ -1821,9 +2089,6 @@ export const OnboardingPage: React.FC = () => {
                             );
                           })}
                         </div>
-                        <span style={{ fontFamily: tokens.usage.typography.body.small.default.fontFamily, fontSize: 12, fontWeight: 500, lineHeight: '16px', color: '#909090' }}>
-                          Times shown in CET
-                        </span>
                       </>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 8 }}>
@@ -1837,7 +2102,14 @@ export const OnboardingPage: React.FC = () => {
                 </div>
 
                 {/* Footer */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                  <Button
+                    variant="tertiary"
+                    size="medium"
+                    onClick={() => setScheduleModalOpen(false)}
+                  >
+                    Cancel
+                  </Button>
                   <Button
                     variant="primary"
                     size="medium"

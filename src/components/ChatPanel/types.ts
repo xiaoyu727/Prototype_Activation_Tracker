@@ -1,7 +1,7 @@
 import type { Product } from '../../pages/ProductListPage/types';
 
 /** Which page the chat is being viewed from */
-export type ChatPage = 'onboarding' | 'menu' | 'product-detail' | 'other';
+export type ChatPage = 'onboarding' | 'menu' | 'product-detail' | 'settings-verification' | 'other';
 
 /** Context fed into the AI mock engine */
 export interface ChatContext {
@@ -14,6 +14,13 @@ export interface ChatContext {
   onboardingTasks?: { id: string; label: string; done: boolean }[];
   /** When true, the menu page was opened from onboarding "Set up your menu" task */
   fromOnboarding?: boolean;
+  /** Verification section completion status (settings-verification page) */
+  verificationStatus?: {
+    businessDetails: boolean;
+    people: boolean;
+    tax: boolean;
+    bank: boolean;
+  };
 }
 
 /** Supported message content types */

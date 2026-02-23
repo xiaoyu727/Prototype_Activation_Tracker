@@ -1292,7 +1292,7 @@ export const ProductListPage: React.FC = () => {
       fullProductsRef.current = updated;
       setProductsData(updated);
     } else if (actionId === 'navigate-home') {
-      navigate('/', { state: { venue } });
+      navigate('/', { state: { venue, menuDone: true } });
     }
   }, [navigate, venue]);
 

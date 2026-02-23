@@ -193,6 +193,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     'guide-allergens', 'guide-apply-allergens',
     'guide-images', 'guide-apply-matched-images',
     'navigate-home',
+    'guide-business-details', 'guide-people', 'guide-tax', 'guide-bank',
+    'verify-saved-business', 'verify-saved-people', 'verify-saved-tax', 'verify-saved-bank',
   ]);
 
   const handleChatActionClick = useCallback((actionId: string) => {

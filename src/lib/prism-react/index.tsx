@@ -329,3 +329,251 @@ export const ListHint: React.FC<ListHintProps> = ({ children }) => (
     {children}
   </div>
 );
+
+/* ------------------------------------------------------------------ */
+/*  TextField                                                          */
+/* ------------------------------------------------------------------ */
+
+interface PrismTextFieldProps {
+  label: string;
+  value: string;
+  onChange: (value: string, e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  isDisabled?: boolean;
+  isLabelHidden?: boolean;
+  error?: string | boolean;
+  isMultiline?: boolean | number;
+}
+
+export const PrismTextField: React.FC<PrismTextFieldProps> = ({
+  label,
+  value,
+  onChange,
+  placeholder,
+  isDisabled,
+  isLabelHidden,
+  error,
+}) => {
+  const [focused, setFocused] = React.useState(false);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+      {!isLabelHidden && (
+        <label style={{ fontSize: 14, fontWeight: 500, lineHeight: '20px', color: '#191919' }}>{label}</label>
+      )}
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value, e)}
+        placeholder={placeholder}
+        disabled={isDisabled}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        style={{
+          width: '100%', height: 44, borderRadius: 12, padding: '0 12px', fontSize: 14,
+          border: `1px solid ${error ? '#C83527' : focused ? '#191919' : '#E4E4E4'}`,
+          backgroundColor: '#fff', outline: 'none', transition: 'border-color 0.15s',
+          boxSizing: 'border-box',
+        }}
+      />
+      {typeof error === 'string' && error && (
+        <span style={{ fontSize: 12, color: '#C83527' }}>{error}</span>
+      )}
+    </div>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/*  DateField with calendar dropdown                                   */
+/* ------------------------------------------------------------------ */
+
+interface PrismDateFieldProps {
+  label: string;
+  value: string;
+  onChange: (dateStr: string) => void;
+  isDisabled?: boolean;
+  isLabelHidden?: boolean;
+}
+
+const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const DOW_HEADERS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+function buildCalendarDays(year: number, month: number) {
+  const first = new Date(year, month, 1);
+  const startDay = first.getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  const cells: { day: number; current: boolean }[] = [];
+  for (let i = startDay - 1; i >= 0; i--) cells.push({ day: daysInPrevMonth - i, current: false });
+  for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, current: true });
+  const remaining = 42 - cells.length;
+  for (let d = 1; d <= remaining; d++) cells.push({ day: d, current: false });
+  return cells;
+}
+
+export const PrismDateField: React.FC<PrismDateFieldProps> = ({
+  label,
+  value,
+  onChange,
+  isDisabled,
+  isLabelHidden,
+}) => {
+  const [open, setOpen] = React.useState(false);
+  const parsed = value ? new Date(value + 'T00:00:00') : null;
+  const [viewYear, setViewYear] = React.useState(parsed?.getFullYear() ?? new Date().getFullYear());
+  const [viewMonth, setViewMonth] = React.useState(parsed?.getMonth() ?? new Date().getMonth());
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const displayVal = value
+    ? (() => { const [y, m, d] = value.split('-'); return `${m}/${d}/${y}`; })()
+    : 'Select date';
+
+  const cells = buildCalendarDays(viewYear, viewMonth);
+  const selectedKey = parsed ? `${parsed.getFullYear()}-${parsed.getMonth()}-${parsed.getDate()}` : '';
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
+    else setViewMonth(viewMonth - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
+    else setViewMonth(viewMonth + 1);
+  };
+
+  return (
+    <div ref={ref} style={{ display: 'flex', flexDirection: 'column', gap: 4, position: 'relative' }}>
+      {!isLabelHidden && (
+        <label style={{ fontSize: 14, fontWeight: 500, lineHeight: '20px', color: '#191919' }}>{label}</label>
+      )}
+      <button
+        type="button"
+        onClick={() => !isDisabled && setOpen(!open)}
+        disabled={isDisabled}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8, width: '100%', height: 44, borderRadius: 12,
+          padding: '0 12px', fontSize: 14, border: `1px solid ${open ? '#191919' : '#E4E4E4'}`,
+          backgroundColor: '#fff', cursor: 'pointer', textAlign: 'left', transition: 'border-color 0.15s',
+          boxSizing: 'border-box',
+        }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, opacity: 0.5 }}>
+          <rect x="3" y="4" width="18" height="18" rx="2" stroke="#606060" strokeWidth="1.5"/>
+          <path d="M3 10h18M8 2v4M16 2v4" stroke="#606060" strokeWidth="1.5" strokeLinecap="round"/>
+        </svg>
+        <span style={{ flex: 1, color: value ? '#191919' : '#999' }}>{displayVal}</span>
+        <svg width="12" height="12" viewBox="0 0 10 6" fill="none" style={{ flexShrink: 0 }}>
+          <path d="M1 1l4 4 4-4" stroke="#606060" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </button>
+
+      {open && (
+        <div style={{
+          position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 100,
+          width: 280, backgroundColor: '#fff', borderRadius: 16, border: '1px solid #E4E4E4',
+          boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: 16,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <button type="button" onClick={prevMonth} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 19l-7-7 7-7" stroke="#191919" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+            <span style={{ fontSize: 14, fontWeight: 600, color: '#191919' }}>{MONTH_NAMES[viewMonth]} {viewYear}</span>
+            <button type="button" onClick={nextMonth} style={{ border: 'none', background: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, display: 'flex', alignItems: 'center' }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="#191919" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+            {DOW_HEADERS.map(d => (
+              <div key={d} style={{ height: 28, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 600, color: '#999' }}>{d}</div>
+            ))}
+            {cells.map((c, i) => {
+              const cellKey = `${viewYear}-${viewMonth}-${c.day}`;
+              const isSelected = c.current && cellKey === selectedKey;
+              const isToday = c.current && c.day === new Date().getDate() && viewMonth === new Date().getMonth() && viewYear === new Date().getFullYear();
+              return (
+                <button
+                  type="button"
+                  key={i}
+                  onClick={() => {
+                    if (!c.current) return;
+                    const m = String(viewMonth + 1).padStart(2, '0');
+                    const d = String(c.day).padStart(2, '0');
+                    onChange(`${viewYear}-${m}-${d}`);
+                    setOpen(false);
+                  }}
+                  style={{
+                    width: 32, height: 32, borderRadius: 9999, border: 'none',
+                    backgroundColor: isSelected ? '#191919' : 'transparent',
+                    color: isSelected ? '#fff' : c.current ? '#191919' : '#ccc',
+                    fontSize: 13, fontWeight: isToday ? 700 : 400,
+                    cursor: c.current ? 'pointer' : 'default',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    outline: isToday && !isSelected ? '1px solid #191919' : 'none',
+                    margin: '0 auto',
+                  }}
+                >
+                  {c.day}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+/* ------------------------------------------------------------------ */
+/*  Toggle                                                             */
+/* ------------------------------------------------------------------ */
+
+interface PrismToggleProps {
+  label: string;
+  isSelected: boolean;
+  onChange?: (isSelected: boolean, event: React.ChangeEvent<HTMLInputElement>) => void;
+  isDisabled?: boolean;
+  isLabelHidden?: boolean;
+}
+
+export const PrismToggle: React.FC<PrismToggleProps> = ({
+  label,
+  isSelected,
+  onChange,
+  isDisabled,
+  isLabelHidden,
+}) => {
+  const id = React.useId();
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <label
+        htmlFor={id}
+        style={{
+          width: 44, height: 24, borderRadius: 12, position: 'relative', display: 'inline-block',
+          backgroundColor: isSelected ? '#191919' : '#E4E4E4', transition: 'background-color 0.2s',
+          cursor: isDisabled ? 'default' : 'pointer', opacity: isDisabled ? 0.5 : 1,
+        }}
+      >
+        <input
+          id={id}
+          type="checkbox"
+          checked={isSelected}
+          disabled={isDisabled}
+          onChange={e => onChange?.(e.target.checked, e)}
+          style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+        />
+        <span style={{
+          position: 'absolute', top: 2, left: isSelected ? 22 : 2,
+          width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff',
+          transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+        }} />
+      </label>
+      {!isLabelHidden && (
+        <span style={{ fontSize: 14, fontWeight: 400, color: '#191919' }}>{label}</span>
+      )}
+    </div>
+  );
+};

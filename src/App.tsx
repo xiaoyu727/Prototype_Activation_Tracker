@@ -5,6 +5,8 @@ import { OnboardingPage } from './pages/OnboardingPage';
 import { ProductListPage } from './pages/ProductListPage';
 import { ProductDetailPage } from './pages/ProductDetailPage';
 import { CreateNewProductPage } from './pages/ProductForm';
+import { SettingsVerificationPage } from './pages/SettingsVerificationPage';
+import { StoreSettingsPage } from './pages/StoreSettingsPage';
 
 class AppErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -46,6 +48,8 @@ const router = createBrowserRouter(
     { path: '/menu', element: <ProductListPage /> },
     { path: '/product/new', element: <CreateNewProductPage /> },
     { path: '/product/:id', element: <ProductDetailPage /> },
+    { path: '/settings/verification', element: <SettingsVerificationPage /> },
+    { path: '/settings/store', element: <StoreSettingsPage /> },
   ],
   {
     future: {

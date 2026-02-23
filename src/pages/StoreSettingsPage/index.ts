@@ -1,0 +1,1 @@
+export { StoreSettingsPage } from './StoreSettingsPage';

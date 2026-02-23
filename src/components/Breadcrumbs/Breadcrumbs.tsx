@@ -4,6 +4,7 @@ import { tokens } from '../../../tokens';
 export interface BreadcrumbItem {
   label: string;
   href?: string;
+  onClick?: (e: React.MouseEvent<HTMLAnchorElement>) => void;
 }
 
 export interface BreadcrumbsProps {
@@ -29,6 +30,7 @@ export const Breadcrumbs: React.FC<BreadcrumbsProps> = ({ items, className }) =>
             {item.href ? (
               <a
                 href={item.href}
+                onClick={item.onClick}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
