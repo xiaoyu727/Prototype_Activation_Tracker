@@ -65,6 +65,17 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = ({
           >
             {option.icon}
           </span>
+          {option.label && (
+            <span style={{
+              fontSize: 13,
+              fontWeight: value === option.value ? 600 : 400,
+              lineHeight: '16px',
+              color: value === option.value ? '#191919' : '#6E6E71',
+              whiteSpace: 'nowrap',
+            }}>
+              {option.label}
+            </span>
+          )}
         </button>
       ))}
     </div>

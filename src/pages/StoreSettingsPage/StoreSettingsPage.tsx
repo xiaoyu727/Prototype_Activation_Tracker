@@ -7,7 +7,7 @@ import { Breadcrumbs } from '../../components/Breadcrumbs';
 import { Button } from '../../components/Button';
 import { Input, Field } from '../../components/Field';
 import { SegmentedControl } from '../../components/SegmentedControl';
-import { PrismTextField, PrismDateField, PrismToggle } from '@doordash/prism-react';
+import { PrismTextField, PrismDateField, PrismToggle, PrismButtonTabs } from '@doordash/prism-react';
 import { SectionCard } from '../ProductForm/shared';
 import type { Venue } from '../ProductListPage/venue';
 import { VENUE_DISPLAY_NAMES } from '../ProductListPage/venue';
@@ -24,6 +24,7 @@ import OrderBagLineSvg from '../../icons/16/order-bag-line.svg';
 import CoinBagLineSvg from '../../icons/16/coin-bag-line.svg';
 import DashboardLineSvg from '../../icons/16/dashboard-line.svg';
 import PromoBullhornLineSvg from '../../icons/16/promo-bullhorn-line.svg';
+import PromoLineSvg from '../../icons/16/promo-line.svg';
 import SettingsLineSvg from '../../icons/16/settings-line.svg';
 import TvLineSvg from '../../icons/16/tv-line.svg';
 import DevicePhoneSvg from '../../icons/16/device-phone.svg';
@@ -213,6 +214,9 @@ export const StoreSettingsPage: React.FC = () => {
   const toggleSection = (section: 'info' | 'branding' | 'hours') =>
     setOpenSection(prev => prev === section ? null : section);
 
+  const [layoutVariant, setLayoutVariant] = useState<'A' | 'B'>('A');
+  const [activeTab, setActiveTab] = useState<'info' | 'branding' | 'hours'>('info');
+
   // Hours editing state
   const [editingRegular, setEditingRegular] = useState(false);
   const [editingSpecial, setEditingSpecial] = useState(false);
@@ -320,7 +324,6 @@ export const StoreSettingsPage: React.FC = () => {
   const IMG_AI_PRESETS: { label: string; icon: string; effect: ImgEffect }[] = [
     { label: 'Make into video', icon: '▶', effect: 'video' },
     { label: 'Expand image', icon: '↔', effect: 'expand' },
-    { label: 'Center items', icon: '⊞', effect: 'center' },
     { label: 'Auto-fit to frame', icon: '⬒', effect: 'autofit' },
   ];
 
@@ -401,22 +404,16 @@ export const StoreSettingsPage: React.FC = () => {
           style={{
             display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer',
             padding: '6px 12px', borderRadius: 9999, alignSelf: 'flex-start',
-            background: isOpen
-              ? 'linear-gradient(174deg, rgba(82,33,207,0.12) 0%, rgba(199,26,181,0.12) 83%)'
-              : 'transparent',
-            border: isOpen ? '1px solid rgba(82,33,207,0.2)' : '1px solid transparent',
+            background: isOpen ? 'rgba(25,25,25,0.06)' : 'transparent',
+            border: isOpen ? '1px solid rgba(25,25,25,0.12)' : '1px solid transparent',
             transition: 'background 0.15s ease, border-color 0.15s ease',
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M8 1.333a.667.667 0 01.667.667v2.667a.667.667 0 01-1.334 0V3.06a4.667 4.667 0 103.667 1.28.667.667 0 01.8-1.067A6 6 0 118 1.333z" fill="url(#ai_img_grad)"/>
-            <defs><linearGradient id="ai_img_grad" x1="2" y1="1" x2="14" y2="15" gradientUnits="userSpaceOnUse"><stop stopColor="#5221CF" stopOpacity=".66"/><stop offset="1" stopColor="#C71AB5" stopOpacity=".66"/></linearGradient></defs>
-          </svg>
+          <img src={PromoLineSvg} alt="" style={{ width: 16, height: 16 }} />
           <span style={{
             fontSize: 13, fontWeight: 600, lineHeight: '18px',
-            background: 'linear-gradient(174deg, rgba(82,33,207,0.8) 0%, rgba(199,26,181,0.8) 83%)',
-            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          }}>AI Edit</span>
+            color: '#191919',
+          }}>Edit image with prompt</span>
         </div>
 
         {/* AI prompt panel */}
@@ -429,15 +426,12 @@ export const StoreSettingsPage: React.FC = () => {
             <div style={{
               display: 'flex', flexDirection: 'column', gap: 12,
               padding: 16, borderRadius: 16,
-              background: 'linear-gradient(135deg, rgba(82,33,207,0.06) 0%, rgba(199,26,181,0.06) 100%)',
-              border: '1px solid rgba(82,33,207,0.12)',
+              background: '#F5F5F5',
+              border: '1px solid #E4E4E4',
             }}>
               {/* Prompt input */}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-                  <path d="M8 1.333a.667.667 0 01.667.667v2.667a.667.667 0 01-1.334 0V3.06a4.667 4.667 0 103.667 1.28.667.667 0 01.8-1.067A6 6 0 118 1.333z" fill="url(#ai_img_grad2)"/>
-                  <defs><linearGradient id="ai_img_grad2" x1="2" y1="1" x2="14" y2="15" gradientUnits="userSpaceOnUse"><stop stopColor="#5221CF" stopOpacity=".66"/><stop offset="1" stopColor="#C71AB5" stopOpacity=".66"/></linearGradient></defs>
-                </svg>
+                <img src={PromoLineSvg} alt="" style={{ width: 20, height: 20, flexShrink: 0 }} />
                 <input
                   ref={isOpen ? imgAiInputRef : undefined}
                   type="text"
@@ -460,8 +454,8 @@ export const StoreSettingsPage: React.FC = () => {
                     border: 'none',
                     cursor: imgAiGenerating || !imgAiPrompt.trim() ? 'default' : 'pointer',
                     background: imgAiGenerating || !imgAiPrompt.trim()
-                      ? 'rgba(82,33,207,0.15)'
-                      : 'linear-gradient(174deg, rgba(82,33,207,0.8) 0%, rgba(199,26,181,0.8) 83%)',
+                      ? 'rgba(25,25,25,0.15)'
+                      : '#191919',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     opacity: imgAiGenerating || !imgAiPrompt.trim() ? 0.5 : 1,
                     transition: 'background 0.2s ease, opacity 0.2s ease',
@@ -472,7 +466,7 @@ export const StoreSettingsPage: React.FC = () => {
               </div>
 
               {/* Preset chips */}
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: 6 }}>
                 {IMG_AI_PRESETS.map(p => (
                   <button
                     key={p.label}
@@ -480,11 +474,11 @@ export const StoreSettingsPage: React.FC = () => {
                     disabled={imgAiGenerating}
                     style={{
                       padding: '6px 12px', borderRadius: 9999,
-                      border: '1px solid rgba(82,33,207,0.18)',
-                      background: 'rgba(255,255,255,0.7)',
+                      border: '1px solid #E4E4E4',
+                      background: '#FFFFFF',
                       fontFamily: tokens.usage.typography.label.small.default.fontFamily,
                       fontSize: 13, fontWeight: 500, lineHeight: '18px',
-                      color: '#5221CF', cursor: imgAiGenerating ? 'default' : 'pointer',
+                      color: '#191919', cursor: imgAiGenerating ? 'default' : 'pointer',
                       display: 'inline-flex', alignItems: 'center', gap: 6,
                       transition: 'background 0.15s ease',
                     }}
@@ -499,18 +493,18 @@ export const StoreSettingsPage: React.FC = () => {
               {(imgAiGenerating || imgAiDone) && (
                 <div style={{
                   padding: 12, borderRadius: 12, backgroundColor: '#FFFFFF',
-                  border: '1px solid rgba(82,33,207,0.1)',
+                  border: '1px solid #E4E4E4',
                   display: 'flex', alignItems: 'center', gap: 8,
                 }}>
                   {imgAiGenerating ? (
                     <>
                       <div style={{
                         width: 16, height: 16, borderRadius: 9999,
-                        border: '2px solid rgba(82,33,207,0.3)',
-                        borderTopColor: '#5221CF',
+                        border: '2px solid rgba(25,25,25,0.2)',
+                        borderTopColor: '#191919',
                         animation: 'aiSpin 0.6s linear infinite',
                       }} />
-                      <span style={{ fontSize: 13, fontWeight: 500, color: '#5221CF' }}>Processing image…</span>
+                      <span style={{ fontSize: 13, fontWeight: 500, color: '#606060' }}>Processing image…</span>
                       <style>{`@keyframes aiSpin { to { transform: rotate(360deg); } }`}</style>
                     </>
                   ) : (
@@ -742,11 +736,10 @@ export const StoreSettingsPage: React.FC = () => {
     </div>
   );
 
-  const leftColumn = (
-    <>
-      {/* Store info */}
-      <SectionCard title="Store info" collapsed={openSection !== 'info'} onToggle={() => toggleSection('info')}>
-        <div style={{ backgroundColor: '#F8F8F8', borderRadius: 20, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+  const sectionBg = layoutVariant === 'A' ? '#F8F8F8' : 'transparent';
+
+  const infoContent = (
+        <div style={{ backgroundColor: sectionBg, borderRadius: layoutVariant === 'A' ? 20 : 0, padding: layoutVariant === 'A' ? 20 : 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
           {editingInfo ? (
             <>
               {/* --- Edit mode --- */}
@@ -764,21 +757,21 @@ export const StoreSettingsPage: React.FC = () => {
                 <FieldLabel
                   label="Store descriptions"
                   trailing={
-                    <span
+                    <div
                       onClick={() => setAiOpen(!aiOpen)}
                       style={{
-                        display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer',
-                        fontSize: 16, fontWeight: 500, lineHeight: '22px',
-                        background: 'linear-gradient(174deg, rgba(82,33,207,0.66) 0%, rgba(199,26,181,0.66) 83%)',
-                        WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                        display: 'inline-flex', alignItems: 'center', gap: 6, cursor: 'pointer',
+                        padding: '6px 12px', borderRadius: 9999,
+                        background: aiOpen ? 'rgba(25,25,25,0.06)' : 'transparent',
+                        border: aiOpen ? '1px solid rgba(25,25,25,0.12)' : '1px solid transparent',
+                        transition: 'background 0.15s ease, border-color 0.15s ease',
                       }}
                     >
-                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M8 1.333a.667.667 0 01.667.667v2.667a.667.667 0 01-1.334 0V3.06a4.667 4.667 0 103.667 1.28.667.667 0 01.8-1.067A6 6 0 118 1.333z" fill="url(#ai_grad)"/>
-                        <defs><linearGradient id="ai_grad" x1="2" y1="1" x2="14" y2="15" gradientUnits="userSpaceOnUse"><stop stopColor="#5221CF" stopOpacity=".66"/><stop offset="1" stopColor="#C71AB5" stopOpacity=".66"/></linearGradient></defs>
-                      </svg>
-                      Re-write this
-                    </span>
+                      <img src={PromoLineSvg} alt="" style={{ width: 16, height: 16 }} />
+                      <span style={{ fontSize: 13, fontWeight: 600, lineHeight: '18px', color: '#191919' }}>
+                        Re-write this
+                      </span>
+                    </div>
                   }
                 />
 
@@ -792,15 +785,12 @@ export const StoreSettingsPage: React.FC = () => {
                     <div style={{
                       display: 'flex', flexDirection: 'column', gap: 12,
                       padding: 16, borderRadius: 16,
-                      background: 'linear-gradient(135deg, rgba(82,33,207,0.06) 0%, rgba(199,26,181,0.06) 100%)',
-                      border: '1px solid rgba(82,33,207,0.12)',
+                      background: '#F5F5F5',
+                      border: '1px solid #E4E4E4',
                     }}>
                       {/* Prompt input */}
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                        <svg width="20" height="20" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
-                          <path d="M8 1.333a.667.667 0 01.667.667v2.667a.667.667 0 01-1.334 0V3.06a4.667 4.667 0 103.667 1.28.667.667 0 01.8-1.067A6 6 0 118 1.333z" fill="url(#ai_grad2)"/>
-                          <defs><linearGradient id="ai_grad2" x1="2" y1="1" x2="14" y2="15" gradientUnits="userSpaceOnUse"><stop stopColor="#5221CF" stopOpacity=".66"/><stop offset="1" stopColor="#C71AB5" stopOpacity=".66"/></linearGradient></defs>
-                        </svg>
+                        <img src={PromoLineSvg} alt="" style={{ width: 20, height: 20, flexShrink: 0 }} />
                         <input
                           ref={aiInputRef}
                           type="text"
@@ -824,8 +814,8 @@ export const StoreSettingsPage: React.FC = () => {
                             flexShrink: 0, width: 32, height: 32, borderRadius: 9999,
                             border: 'none', cursor: aiGenerating || !aiPrompt.trim() ? 'default' : 'pointer',
                             background: aiGenerating || !aiPrompt.trim()
-                              ? 'rgba(82,33,207,0.15)'
-                              : 'linear-gradient(174deg, rgba(82,33,207,0.8) 0%, rgba(199,26,181,0.8) 83%)',
+                              ? 'rgba(25,25,25,0.15)'
+                              : '#191919',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             transition: 'background 0.2s ease, opacity 0.2s ease',
                             opacity: aiGenerating || !aiPrompt.trim() ? 0.5 : 1,
@@ -844,11 +834,11 @@ export const StoreSettingsPage: React.FC = () => {
                             disabled={aiGenerating}
                             style={{
                               padding: '6px 12px', borderRadius: 9999,
-                              border: '1px solid rgba(82,33,207,0.18)',
-                              background: 'rgba(255,255,255,0.7)',
+                              border: '1px solid #E4E4E4',
+                              background: '#FFFFFF',
                               fontFamily: tokens.usage.typography.label.small.default.fontFamily,
                               fontSize: 13, fontWeight: 500, lineHeight: '18px',
-                              color: '#5221CF', cursor: aiGenerating ? 'default' : 'pointer',
+                              color: '#191919', cursor: aiGenerating ? 'default' : 'pointer',
                               transition: 'background 0.15s ease',
                             }}
                           >
@@ -861,18 +851,18 @@ export const StoreSettingsPage: React.FC = () => {
                       {(aiGenerating || aiResult) && (
                         <div style={{
                           padding: 12, borderRadius: 12, backgroundColor: '#FFFFFF',
-                          border: '1px solid rgba(82,33,207,0.1)',
+                          border: '1px solid #E4E4E4',
                           minHeight: 60, display: 'flex', flexDirection: 'column', gap: 8,
                         }}>
                           {aiGenerating ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                               <div style={{
                                 width: 16, height: 16, borderRadius: 9999,
-                                border: '2px solid rgba(82,33,207,0.3)',
-                                borderTopColor: '#5221CF',
+                                border: '2px solid rgba(25,25,25,0.2)',
+                                borderTopColor: '#191919',
                                 animation: 'aiSpin 0.6s linear infinite',
                               }} />
-                              <span style={{ fontSize: 13, fontWeight: 500, color: '#5221CF' }}>Generating…</span>
+                              <span style={{ fontSize: 13, fontWeight: 500, color: '#606060' }}>Generating…</span>
                               <style>{`@keyframes aiSpin { to { transform: rotate(360deg); } }`}</style>
                             </div>
                           ) : (
@@ -887,7 +877,7 @@ export const StoreSettingsPage: React.FC = () => {
                                 {aiDisplayed.length < aiResult.length && (
                                   <span style={{
                                     display: 'inline-block', width: 2, height: 14,
-                                    backgroundColor: '#5221CF', marginLeft: 1,
+                                    backgroundColor: '#191919', marginLeft: 1,
                                     animation: 'aiBlink 0.6s steps(2) infinite',
                                     verticalAlign: 'text-bottom',
                                   }} />
@@ -900,7 +890,7 @@ export const StoreSettingsPage: React.FC = () => {
                                     onClick={handleAiAccept}
                                     style={{
                                       padding: '6px 16px', borderRadius: 9999, border: 'none',
-                                      background: 'linear-gradient(174deg, rgba(82,33,207,0.8) 0%, rgba(199,26,181,0.8) 83%)',
+                                      background: '#191919',
                                       color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                                     }}
                                   >Accept</button>
@@ -908,9 +898,9 @@ export const StoreSettingsPage: React.FC = () => {
                                     onClick={() => handleAiGenerate(aiPrompt)}
                                     style={{
                                       padding: '6px 16px', borderRadius: 9999,
-                                      border: '1px solid rgba(82,33,207,0.2)',
+                                      border: '1px solid #E4E4E4',
                                       background: 'transparent',
-                                      color: '#5221CF', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+                                      color: '#191919', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                                     }}
                                   >Regenerate</button>
                                   <button
@@ -1052,15 +1042,15 @@ export const StoreSettingsPage: React.FC = () => {
             </>
           )}
         </div>
-      </SectionCard>
+  );
 
-      {/* Branding */}
-      <SectionCard title="Branding" collapsed={openSection !== 'branding'} onToggle={() => toggleSection('branding')}>
+  const brandingContent = (
+        <>
         {/* Cover image card */}
-        <div style={{ backgroundColor: '#F8F8F8', borderRadius: 20, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden' }}>
+        <div style={{ backgroundColor: sectionBg, borderRadius: layoutVariant === 'A' ? 20 : 0, padding: layoutVariant === 'A' ? 20 : 0, display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontFamily: tokens.usage.typography.label.medium.strong.fontFamily, fontSize: 18, fontWeight: 700, lineHeight: '22px', color: '#191919' }}>Your cover image</span>
+              <span style={{ fontSize: 16, fontWeight: 600, lineHeight: '22px', color: '#191919' }}>Your cover image</span>
               <span style={{ fontFamily: tokens.usage.typography.label.small.default.fontFamily, fontSize: 16, fontWeight: 500, lineHeight: '22px', color: 'rgba(32,33,37,0.64)' }}>Upload the image that best shows off your store.</span>
             </div>
             <Button variant="secondary" size="medium" icon={<img src={ShareLineSvg} alt="" style={{ width: 16, height: 16 }} />}>Upload</Button>
@@ -1102,10 +1092,10 @@ export const StoreSettingsPage: React.FC = () => {
         </div>
 
         {/* Store logo card */}
-        <div style={{ backgroundColor: '#F8F8F8', borderRadius: 20, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ backgroundColor: sectionBg, borderRadius: layoutVariant === 'A' ? 20 : 0, padding: layoutVariant === 'A' ? 20 : 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 4 }}>
             <div style={{ flex: '1 0 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontFamily: tokens.usage.typography.label.medium.strong.fontFamily, fontSize: 18, fontWeight: 700, lineHeight: '22px', color: '#191919' }}>Your store logo</span>
+              <span style={{ fontSize: 16, fontWeight: 600, lineHeight: '22px', color: '#191919' }}>Your store logo</span>
               <span style={{ fontFamily: tokens.usage.typography.label.small.default.fontFamily, fontSize: 16, fontWeight: 500, lineHeight: '22px', color: 'rgba(32,33,37,0.64)' }}>Upload the logo you want customers to see.</span>
             </div>
             <Button variant="secondary" size="medium" icon={<img src={ShareLineSvg} alt="" style={{ width: 16, height: 16 }} />}>Upload</Button>
@@ -1139,12 +1129,13 @@ export const StoreSettingsPage: React.FC = () => {
           </div>
           {renderImageAiPanel('logo')}
         </div>
-      </SectionCard>
+        </>
+  );
 
-      {/* Store hours */}
-      <SectionCard title="Store hours" collapsed={openSection !== 'hours'} onToggle={() => toggleSection('hours')}>
+  const hoursContent = (
+        <>
         {/* ===== Regular hours card ===== */}
-        <div style={{ backgroundColor: '#F8F8F8', borderRadius: 20, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ backgroundColor: sectionBg, borderRadius: layoutVariant === 'A' ? 20 : 0, padding: layoutVariant === 'A' ? 20 : 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <span style={{ fontSize: 16, fontWeight: 600, lineHeight: '22px', color: '#191919' }}>Regular hours</span>
@@ -1317,7 +1308,7 @@ export const StoreSettingsPage: React.FC = () => {
         </div>
 
         {/* ===== Special hours card ===== */}
-        <div style={{ backgroundColor: '#F8F8F8', borderRadius: 20, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ backgroundColor: sectionBg, borderRadius: layoutVariant === 'A' ? 20 : 0, padding: layoutVariant === 'A' ? 20 : 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               <span style={{ fontSize: 16, fontWeight: 600, lineHeight: '22px', color: '#191919' }}>Special hours</span>
@@ -1497,6 +1488,19 @@ export const StoreSettingsPage: React.FC = () => {
             </>
           )}
         </div>
+        </>
+  );
+
+  const leftColumn = (
+    <>
+      <SectionCard title="Store info" collapsed={openSection !== 'info'} onToggle={() => toggleSection('info')}>
+        {infoContent}
+      </SectionCard>
+      <SectionCard title="Branding" collapsed={openSection !== 'branding'} onToggle={() => toggleSection('branding')}>
+        {brandingContent}
+      </SectionCard>
+      <SectionCard title="Store hours" collapsed={openSection !== 'hours'} onToggle={() => toggleSection('hours')}>
+        {hoursContent}
       </SectionCard>
     </>
   );
@@ -1528,8 +1532,8 @@ export const StoreSettingsPage: React.FC = () => {
           value={previewView}
           onChange={(v) => setPreviewView(v as 'tv' | 'phone')}
           options={[
-            { value: 'tv', icon: <img src={TvLineSvg} alt="" style={{ width: 16, height: 16 }} />, label: 'Desktop view' },
-            { value: 'phone', icon: <img src={DevicePhoneSvg} alt="" style={{ width: 16, height: 16 }} />, label: 'Phone view' },
+            { value: 'tv', icon: <img src={TvLineSvg} alt="Desktop view" style={{ width: 16, height: 16 }} /> },
+            { value: 'phone', icon: <img src={DevicePhoneSvg} alt="Phone view" style={{ width: 16, height: 16 }} /> },
           ]}
         />
       </div>
@@ -1603,18 +1607,51 @@ export const StoreSettingsPage: React.FC = () => {
                 { label: 'Settings', href: '#' },
                 { label: 'Store settings' },
               ]} />
-              <h1 style={{
-                margin: 0,
-                fontFamily: tokens.base.typography.fontFamily.brand,
-                fontSize: `${tokens.usage.typography.display.large.fontSize}px`,
-                fontWeight: tokens.usage.typography.display.large.fontWeight,
-                lineHeight: `${tokens.usage.typography.display.large.lineHeight}px`,
-                letterSpacing: tokens.usage.typography.display.large.letterSpacing,
-                color: '#202125',
-              }}>
-                Store settings
-              </h1>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <h1 style={{
+                  margin: 0,
+                  fontFamily: tokens.base.typography.fontFamily.brand,
+                  fontSize: `${tokens.usage.typography.display.large.fontSize}px`,
+                  fontWeight: tokens.usage.typography.display.large.fontWeight,
+                  lineHeight: `${tokens.usage.typography.display.large.lineHeight}px`,
+                  letterSpacing: tokens.usage.typography.display.large.letterSpacing,
+                  color: '#202125',
+                }}>
+                  Store settings
+                </h1>
+                <SegmentedControl
+                  value={layoutVariant}
+                  onChange={v => setLayoutVariant(v as 'A' | 'B')}
+                  options={[
+                    {
+                      value: 'A',
+                      label: 'Layout A',
+                      icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="3" rx="1" fill="currentColor"/><rect x="1" y="7" width="14" height="3" rx="1" fill="currentColor" opacity=".4"/><rect x="1" y="12" width="14" height="3" rx="1" fill="currentColor" opacity=".2"/></svg>,
+                    },
+                    {
+                      value: 'B',
+                      label: 'Layout B',
+                      icon: <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="4" height="2" rx=".5" fill="currentColor"/><rect x="6" y="1" width="4" height="2" rx=".5" fill="currentColor" opacity=".4"/><rect x="11" y="1" width="4" height="2" rx=".5" fill="currentColor" opacity=".2"/><rect x="1" y="5" width="14" height="10" rx="1" fill="currentColor" opacity=".15"/></svg>,
+                    },
+                  ]}
+                />
+              </div>
             </div>
+
+            {layoutVariant === 'B' && (
+              <div style={{ marginTop: 16 }}>
+                <PrismButtonTabs
+                  tabs={[
+                    { value: 'branding', label: 'Brand assets' },
+                    { value: 'info', label: 'Store info' },
+                    { value: 'hours', label: 'Store hours' },
+                  ]}
+                  value={activeTab}
+                  onChange={v => { setActiveTab(v as 'info' | 'branding' | 'hours'); setOpenSection(v as 'info' | 'branding' | 'hours'); }}
+                  size="medium"
+                />
+              </div>
+            )}
           </div>
 
           {/* Two columns */}
@@ -1631,7 +1668,49 @@ export const StoreSettingsPage: React.FC = () => {
             }}
           >
             <div style={{ flex: '1 1 0%', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16, paddingBottom: 24 }}>
-              {leftColumn}
+              {layoutVariant === 'A' ? (
+                leftColumn
+              ) : (
+                <>
+                  {activeTab === 'info' && (
+                    <div style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24 }}>
+                      {infoContent}
+                    </div>
+                  )}
+                  {activeTab === 'branding' && (
+                    <>
+                      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden' }}>
+                          {/* Cover image section */}
+                          {React.Children.toArray((brandingContent as React.ReactElement).props.children)[0]}
+                        </div>
+                      </div>
+                      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                          {/* Store logo section */}
+                          {React.Children.toArray((brandingContent as React.ReactElement).props.children)[1]}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  {activeTab === 'hours' && (
+                    <>
+                      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                          {/* Regular hours section */}
+                          {React.Children.toArray((hoursContent as React.ReactElement).props.children)[0]}
+                        </div>
+                      </div>
+                      <div style={{ backgroundColor: '#FFFFFF', borderRadius: 24, padding: 24 }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                          {/* Special hours section */}
+                          {React.Children.toArray((hoursContent as React.ReactElement).props.children)[1]}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
             </div>
             <div style={{ width: 434, flexShrink: 0, position: 'sticky', top: 0, alignSelf: 'flex-start' }}>
               {rightColumn}

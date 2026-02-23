@@ -331,6 +331,76 @@ export const ListHint: React.FC<ListHintProps> = ({ children }) => (
 );
 
 /* ------------------------------------------------------------------ */
+/*  ButtonTabs                                                         */
+/* ------------------------------------------------------------------ */
+
+export interface ButtonTabItem {
+  value: string;
+  label: string;
+}
+
+export interface PrismButtonTabsProps {
+  tabs: ButtonTabItem[];
+  value: string;
+  onChange: (value: string) => void;
+  size?: 'small' | 'medium' | 'large';
+}
+
+export const PrismButtonTabs: React.FC<PrismButtonTabsProps> = ({
+  tabs,
+  value,
+  onChange,
+  size = 'medium',
+}) => {
+  const fontSize = size === 'small' ? 13 : size === 'large' ? 16 : 14;
+  const padding = size === 'small' ? '8px 12px' : size === 'large' ? '12px 20px' : '10px 16px';
+  const indicatorHeight = size === 'small' ? 2 : 3;
+
+  return (
+    <div style={{ display: 'flex', position: 'relative', borderBottom: '1px solid #E4E4E4' }}>
+      {tabs.map(tab => {
+        const isSelected = tab.value === value;
+        return (
+          <button
+            key={tab.value}
+            onClick={() => onChange(tab.value)}
+            style={{
+              position: 'relative',
+              padding,
+              border: 'none',
+              background: 'none',
+              cursor: 'pointer',
+              fontFamily: tokens.usage.typography.label.medium.strong.fontFamily,
+              fontSize,
+              fontWeight: isSelected ? 700 : 500,
+              lineHeight: '20px',
+              color: isSelected ? '#191919' : '#6E6E71',
+              transition: 'color 0.15s ease',
+              paddingBottom: `calc(${typeof padding === 'string' ? padding.split(' ')[0] : '10px'} + ${indicatorHeight}px)`,
+            }}
+          >
+            {tab.label}
+            {isSelected && (
+              <span
+                style={{
+                  position: 'absolute',
+                  bottom: -1,
+                  left: 0,
+                  right: 0,
+                  height: indicatorHeight,
+                  backgroundColor: '#191919',
+                  borderRadius: `${indicatorHeight}px ${indicatorHeight}px 0 0`,
+                }}
+              />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+};
+
+/* ------------------------------------------------------------------ */
 /*  TextField                                                          */
 /* ------------------------------------------------------------------ */
 

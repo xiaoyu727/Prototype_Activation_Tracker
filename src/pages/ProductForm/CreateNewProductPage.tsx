@@ -714,13 +714,11 @@ export const CreateNewProductPage: React.FC = () => {
           options={[
             {
               value: 'tv',
-              icon: <img src={TvLineSvg} alt="" style={{ width: 16, height: 16 }} />,
-              label: 'Desktop view',
+              icon: <img src={TvLineSvg} alt="Desktop view" style={{ width: 16, height: 16 }} />,
             },
             {
               value: 'phone',
-              icon: <img src={DevicePhoneSvg} alt="" style={{ width: 16, height: 16 }} />,
-              label: 'Phone view',
+              icon: <img src={DevicePhoneSvg} alt="Phone view" style={{ width: 16, height: 16 }} />,
             },
           ]}
         />
