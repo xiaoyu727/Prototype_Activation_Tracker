@@ -466,6 +466,7 @@ export const StoreSettingsPage: React.FC = () => {
               </div>
 
               {/* Preset chips */}
+              {!imgAiPrompt.trim() && !imgAiGenerating && !imgAiDone && (
               <div style={{ display: 'flex', gap: 6 }}>
                 {IMG_AI_PRESETS.map(p => (
                   <button
@@ -488,6 +489,7 @@ export const StoreSettingsPage: React.FC = () => {
                   </button>
                 ))}
               </div>
+              )}
 
               {/* Generating / done state */}
               {(imgAiGenerating || imgAiDone) && (
@@ -826,6 +828,7 @@ export const StoreSettingsPage: React.FC = () => {
                       </div>
 
                       {/* Preset chips */}
+                      {!aiPrompt.trim() && !aiGenerating && !aiResult && (
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {AI_PRESETS.map(p => (
                           <button
@@ -846,6 +849,7 @@ export const StoreSettingsPage: React.FC = () => {
                           </button>
                         ))}
                       </div>
+                      )}
 
                       {/* Generating / result area */}
                       {(aiGenerating || aiResult) && (
@@ -1002,7 +1006,7 @@ export const StoreSettingsPage: React.FC = () => {
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <span style={{
                     fontFamily: tokens.usage.typography.label.medium.strong.fontFamily,
-                    fontSize: 16, fontWeight: 600, lineHeight: '22px', color: '#191919',
+                    fontSize: 20, fontWeight: 700, lineHeight: '24px', color: '#191919',
                   }}>{storeData.name}</span>
                   <span style={{
                     fontFamily: tokens.usage.typography.label.small.default.fontFamily,
@@ -1050,7 +1054,7 @@ export const StoreSettingsPage: React.FC = () => {
         <div style={{ backgroundColor: sectionBg, borderRadius: layoutVariant === 'A' ? 20 : 0, padding: layoutVariant === 'A' ? 20 : 0, display: 'flex', flexDirection: 'column', gap: 16, overflow: 'hidden' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 16, fontWeight: 600, lineHeight: '22px', color: '#191919' }}>Your cover image</span>
+              <span style={{ fontSize: 20, fontWeight: 700, lineHeight: '24px', color: '#191919' }}>Your cover image</span>
               <span style={{ fontFamily: tokens.usage.typography.label.small.default.fontFamily, fontSize: 16, fontWeight: 500, lineHeight: '22px', color: 'rgba(32,33,37,0.64)' }}>Upload the image that best shows off your store.</span>
             </div>
             <Button variant="secondary" size="medium" icon={<img src={ShareLineSvg} alt="" style={{ width: 16, height: 16 }} />}>Upload</Button>
@@ -1095,7 +1099,7 @@ export const StoreSettingsPage: React.FC = () => {
         <div style={{ backgroundColor: sectionBg, borderRadius: layoutVariant === 'A' ? 20 : 0, padding: layoutVariant === 'A' ? 20 : 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 4 }}>
             <div style={{ flex: '1 0 0', display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 16, fontWeight: 600, lineHeight: '22px', color: '#191919' }}>Your store logo</span>
+              <span style={{ fontSize: 20, fontWeight: 700, lineHeight: '24px', color: '#191919' }}>Your store logo</span>
               <span style={{ fontFamily: tokens.usage.typography.label.small.default.fontFamily, fontSize: 16, fontWeight: 500, lineHeight: '22px', color: 'rgba(32,33,37,0.64)' }}>Upload the logo you want customers to see.</span>
             </div>
             <Button variant="secondary" size="medium" icon={<img src={ShareLineSvg} alt="" style={{ width: 16, height: 16 }} />}>Upload</Button>
@@ -1138,7 +1142,7 @@ export const StoreSettingsPage: React.FC = () => {
         <div style={{ backgroundColor: sectionBg, borderRadius: layoutVariant === 'A' ? 20 : 0, padding: layoutVariant === 'A' ? 20 : 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 16, fontWeight: 600, lineHeight: '22px', color: '#191919' }}>Regular hours</span>
+              <span style={{ fontSize: 20, fontWeight: 700, lineHeight: '24px', color: '#191919' }}>Regular hours</span>
               <span style={{ fontSize: 14, fontWeight: 400, lineHeight: '22px', color: '#606060' }}>These are the hours your store is available on DoorDash.</span>
             </div>
             {!editingRegular && (
@@ -1311,7 +1315,7 @@ export const StoreSettingsPage: React.FC = () => {
         <div style={{ backgroundColor: sectionBg, borderRadius: layoutVariant === 'A' ? 20 : 0, padding: layoutVariant === 'A' ? 20 : 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 16, fontWeight: 600, lineHeight: '22px', color: '#191919' }}>Special hours</span>
+              <span style={{ fontSize: 20, fontWeight: 700, lineHeight: '24px', color: '#191919' }}>Special hours</span>
               <span style={{ fontSize: 14, fontWeight: 400, lineHeight: '22px', color: '#606060' }}>
                 Special hours or closures for holidays, special events, or other exceptional events. This will temporarily replace your regular menu hours.
               </span>
