@@ -1,5 +1,5 @@
 import React from 'react';
-import { createHashRouter, RouterProvider } from 'react-router-dom';
+import { createHashRouter, RouterProvider, useRouteError } from 'react-router-dom';
 import { SidebarStateProvider } from './contexts/SidebarStateContext';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { ProductListPage } from './pages/ProductListPage';
@@ -42,22 +42,29 @@ class AppErrorBoundary extends React.Component<
   }
 }
 
-const router = createHashRouter(
-  [
-    { path: '/', element: <OnboardingPage /> },
-    { path: '/menu', element: <ProductListPage /> },
-    { path: '/product/new', element: <CreateNewProductPage /> },
-    { path: '/product/:id', element: <ProductDetailPage /> },
-    { path: '/settings/verification', element: <SettingsVerificationPage /> },
-    { path: '/settings/store', element: <StoreSettingsPage /> },
-  ],
-  {
-    future: {
-      v7_startTransition: true,
-      v7_relativeSplatPath: true,
-    },
-  },
-);
+function RouteError() {
+  const err = useRouteError() as any;
+  return (
+    <div style={{ padding: 24, fontFamily: 'system-ui, sans-serif', maxWidth: 640 }}>
+      <h1 style={{ color: '#c00' }}>Route Error</h1>
+      <pre style={{ overflow: 'auto', background: '#f5f5f5', padding: 16, borderRadius: 8, whiteSpace: 'pre-wrap' }}>
+        {err instanceof Error ? err.stack || err.message : JSON.stringify(err, null, 2)}
+      </pre>
+      <p style={{ color: '#666', marginTop: 12 }}>URL: {window.location.href}</p>
+    </div>
+  );
+}
+
+const routes = [
+  { path: '/', element: <OnboardingPage />, errorElement: <RouteError /> },
+  { path: '/menu', element: <ProductListPage />, errorElement: <RouteError /> },
+  { path: '/product/new', element: <CreateNewProductPage />, errorElement: <RouteError /> },
+  { path: '/product/:id', element: <ProductDetailPage />, errorElement: <RouteError /> },
+  { path: '/settings/verification', element: <SettingsVerificationPage />, errorElement: <RouteError /> },
+  { path: '/settings/store', element: <StoreSettingsPage />, errorElement: <RouteError /> },
+];
+
+const router = createHashRouter(routes);
 
 function App() {
   return (
