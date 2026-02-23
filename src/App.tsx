@@ -1,5 +1,5 @@
 import React from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createHashRouter, RouterProvider } from 'react-router-dom';
 import { SidebarStateProvider } from './contexts/SidebarStateContext';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { ProductListPage } from './pages/ProductListPage';
@@ -42,9 +42,7 @@ class AppErrorBoundary extends React.Component<
   }
 }
 
-const basename = import.meta.env.BASE_URL.replace(/\/$/, '');
-
-const router = createBrowserRouter(
+const router = createHashRouter(
   [
     { path: '/', element: <OnboardingPage /> },
     { path: '/menu', element: <ProductListPage /> },
@@ -54,7 +52,6 @@ const router = createBrowserRouter(
     { path: '/settings/store', element: <StoreSettingsPage /> },
   ],
   {
-    basename,
     future: {
       v7_startTransition: true,
       v7_relativeSplatPath: true,

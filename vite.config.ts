@@ -23,5 +23,5 @@ export default defineConfig({
       },
     },
   },
-  base: process.env.GITHUB_PAGES ? '/Prototype_Activation_Tracker/' : './',
+  base: './',
 });
