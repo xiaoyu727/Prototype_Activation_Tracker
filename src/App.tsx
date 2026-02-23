@@ -42,6 +42,8 @@ class AppErrorBoundary extends React.Component<
   }
 }
 
+const basename = import.meta.env.BASE_URL.replace(/\/$/, '');
+
 const router = createBrowserRouter(
   [
     { path: '/', element: <OnboardingPage /> },
@@ -52,6 +54,7 @@ const router = createBrowserRouter(
     { path: '/settings/store', element: <StoreSettingsPage /> },
   ],
   {
+    basename,
     future: {
       v7_startTransition: true,
       v7_relativeSplatPath: true,

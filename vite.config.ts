@@ -23,5 +23,5 @@ export default defineConfig({
       },
     },
   },
-  base: './', // Use relative paths for assets
+  base: process.env.GITHUB_PAGES ? '/Prototype_Activation_Tracker/' : './',
 });

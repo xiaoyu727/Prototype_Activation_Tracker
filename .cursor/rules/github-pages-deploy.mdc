@@ -1,0 +1,41 @@
+---
+description: GitHub Pages deployment workflow for the sandbox
+alwaysApply: true
+---
+
+# GitHub Pages Deployment
+
+This project is deployed to GitHub Pages using the **legacy** (branch-based) mode.
+The built app is committed to the `docs/` directory on `main`, and GitHub serves it directly.
+
+## How It Works
+
+src/ → npm run build → dist/ → copy to docs/ → push to main → GitHub Pages serves docs/
+
+- `dist/` is gitignored (local build artifact)
+- `docs/` is committed (GitHub Pages source)
+- `.nojekyll` in `docs/` disables Jekyll processing
+- Live URL: https://xiaoyu727.github.io/Prototype_Activation_Tracker/
+
+## Agent Instructions
+
+A **pre-commit hook** automatically rebuilds `docs/` whenever source files are staged.
+Do NOT manually rebuild `docs/` — the hook handles it during `git commit`.
+
+### If the hook is missing
+
+Git hooks are not tracked by git and can be lost after a re-clone. If `git commit`
+does not produce "Rebuilding docs/ for GitHub Pages..." output, reinstall the hook:
+
+```bash
+cat > .git/hooks/pre-commit << 'HOOK'
+#!/bin/sh
+STAGED=$(git diff --cached --name-only --diff-filter=d | grep -v '^docs/')
+if [ -z "$STAGED" ]; then exit 0; fi
+echo "Rebuilding docs/ for GitHub Pages..."
+npm run build && rm -rf docs && cp -r dist docs && touch docs/.nojekyll
+git add docs/
+echo "docs/ updated."
+HOOK
+chmod +x .git/hooks/pre-commit
+```
