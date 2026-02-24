@@ -535,303 +535,37 @@ export const SettingsVerificationPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Form sections */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '0 48px 48px', maxWidth: 720 }}>
-
-            {/* Business details */}
-            <CollapsibleSection
-              title="Business details"
-              expanded={expandedSections.business}
-              onToggle={() => toggleSection('business')}
-              sectionRef={businessRef}
-              highlighted={highlightedSection === 'business'}
-            >
-              <FormRow>
-                <Input
-                  label="Registered business name"
-                  value={formData.business.name}
-                  onChange={(v) => setFormData((prev) => ({ ...prev, business: { ...prev.business, name: v } }))}
-                  style={{ flex: 1 }}
-                />
-                <Input
-                  label="Business ID"
-                  value={formData.business.businessId}
-                  onChange={(v) => setFormData((prev) => ({ ...prev, business: { ...prev.business, businessId: v } }))}
-                  style={{ flex: 1 }}
-                />
-              </FormRow>
-              <FormRow>
-                <Input
-                  label="Registered business address"
-                  value={formData.business.address}
-                  onChange={(v) => setFormData((prev) => ({ ...prev, business: { ...prev.business, address: v } }))}
-                  style={{ flex: 1 }}
-                />
-                <DropdownFormField label="Legal form">
-                  <DropdownField
-                    options={LEGAL_FORMS}
-                    value={formData.business.legalForm}
-                    onSelect={(id) => setFormData((prev) => ({ ...prev, business: { ...prev.business, legalForm: id } }))}
-                  />
-                </DropdownFormField>
-              </FormRow>
-              <FormRow>
-                <Input
-                  label="Business registration date"
-                  value={formData.business.registrationDate}
-                  onChange={(v) => setFormData((prev) => ({ ...prev, business: { ...prev.business, registrationDate: v } }))}
-                  action={<img src={CalendarLineSvg} alt="" style={{ width: 16, height: 16, opacity: 0.45 }} />}
-                  style={{ flex: 1 }}
-                />
-                <DropdownFormField label="Field of industry">
-                  <DropdownField
-                    options={INDUSTRY_OPTIONS}
-                    value={formData.business.industry}
-                    onSelect={(id) => setFormData((prev) => ({ ...prev, business: { ...prev.business, industry: id } }))}
-                  />
-                </DropdownFormField>
-              </FormRow>
-              <div style={{ display: 'flex', gap: 12, paddingTop: 8 }}>
-                <Button variant="primary" size="medium" onClick={() => handleSaveSection('business')}>
-                  Save
-                </Button>
-              </div>
-            </CollapsibleSection>
-
-            {/* People connected to your business */}
-            <CollapsibleSection
-              title="People connected to your business"
-              expanded={expandedSections.people}
-              onToggle={() => toggleSection('people')}
-              sectionRef={peopleRef}
-              highlighted={highlightedSection === 'people'}
-            >
-              <FormRow>
-                <Input
-                  label="First name"
-                  value={person?.firstName ?? ''}
-                  onChange={(v) => setFormData((prev) => {
-                    const updated = [...prev.people];
-                    if (updated[0]) updated[0] = { ...updated[0], firstName: v };
-                    return { ...prev, people: updated };
-                  })}
-                  style={{ flex: 1 }}
-                />
-                <Input
-                  label="Last name"
-                  value={person?.lastName ?? ''}
-                  onChange={(v) => setFormData((prev) => {
-                    const updated = [...prev.people];
-                    if (updated[0]) updated[0] = { ...updated[0], lastName: v };
-                    return { ...prev, people: updated };
-                  })}
-                  style={{ flex: 1 }}
-                />
-              </FormRow>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <SectionLabel>What&apos;s this person&apos;s role?</SectionLabel>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 8 }}>
-                  <CheckboxRow
-                    checked={person?.isUBO ?? false}
-                    onChange={(v) => setFormData((prev) => {
-                      const updated = [...prev.people];
-                      if (updated[0]) updated[0] = { ...updated[0], isUBO: v };
-                      return { ...prev, people: updated };
-                    })}
-                    label="Ultimate Beneficial Owner"
-                    description="A natural person holding more than 25% of the shares or has the sole decision-making authority of the company"
-                  />
-                  <CheckboxRow
-                    checked={person?.isRepresentative ?? false}
-                    onChange={(v) => setFormData((prev) => {
-                      const updated = [...prev.people];
-                      if (updated[0]) updated[0] = { ...updated[0], isRepresentative: v };
-                      return { ...prev, people: updated };
-                    })}
-                    label="Company representative"
-                    description="Natural or a legal person having the legal right to represent the company"
-                  />
-                  <CheckboxRow
-                    checked={person?.isBoardMember ?? false}
-                    onChange={(v) => setFormData((prev) => {
-                      const updated = [...prev.people];
-                      if (updated[0]) updated[0] = { ...updated[0], isBoardMember: v };
-                      return { ...prev, people: updated };
-                    })}
-                    label="Board member"
-                    description="Natural or a legal person belonging to the Company's Board of Directors"
-                  />
-                </div>
-              </div>
-
-              <SectionLabel>Additional details</SectionLabel>
-              <FormRow>
-                <DropdownFormField label="Citizenship">
-                  <DropdownField
-                    options={CITIZENSHIP_OPTIONS}
-                    value={person?.citizenship ?? ''}
-                    onSelect={(id) => setFormData((prev) => {
-                      const updated = [...prev.people];
-                      if (updated[0]) updated[0] = { ...updated[0], citizenship: id };
-                      return { ...prev, people: updated };
-                    })}
-                  />
-                </DropdownFormField>
-                <Input
-                  label="Date of birth"
-                  value={person?.dateOfBirth ?? ''}
-                  onChange={(v) => setFormData((prev) => {
-                    const updated = [...prev.people];
-                    if (updated[0]) updated[0] = { ...updated[0], dateOfBirth: v };
-                    return { ...prev, people: updated };
-                  })}
-                  action={<img src={CalendarLineSvg} alt="" style={{ width: 16, height: 16, opacity: 0.45 }} />}
-                  style={{ flex: 1 }}
-                />
-              </FormRow>
-              <FormRow>
-                <DropdownFormField label="Country of residence">
-                  <DropdownField
-                    options={COUNTRY_OPTIONS}
-                    value={person?.countryOfResidence ?? ''}
-                    onSelect={(id) => setFormData((prev) => {
-                      const updated = [...prev.people];
-                      if (updated[0]) updated[0] = { ...updated[0], countryOfResidence: id };
-                      return { ...prev, people: updated };
-                    })}
-                  />
-                </DropdownFormField>
-                <Input
-                  label="National ID number"
-                  value={person?.nationalId ?? ''}
-                  onChange={(v) => setFormData((prev) => {
-                    const updated = [...prev.people];
-                    if (updated[0]) updated[0] = { ...updated[0], nationalId: v };
-                    return { ...prev, people: updated };
-                  })}
-                  style={{ flex: 1 }}
-                />
-              </FormRow>
-
-              <FormRow>
-                <Input
-                  label="Registered business name"
-                  value={formData.business.name}
-                  disabled
-                  style={{ flex: 1 }}
-                />
-                <Input
-                  label="Business ID"
-                  value={formData.business.businessId}
-                  disabled
-                  style={{ flex: 1 }}
-                />
-              </FormRow>
-
-              <Input
-                label="Address of residency"
-                value={formData.business.address}
-                disabled
-              />
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <img src={LinkSvg} alt="" style={{ width: 16, height: 16, opacity: 0.5 }} />
-                <span style={{
-                  fontFamily: tokens.usage.typography.label.small.strong.fontFamily,
-                  fontSize: tokens.usage.typography.label.small.strong.fontSize,
-                  fontWeight: tokens.usage.typography.label.small.strong.fontWeight,
-                  color: '#191919',
-                  textDecoration: 'underline',
-                  cursor: 'pointer',
-                }}>
-                  Identity verification
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', gap: 12, paddingTop: 8, alignItems: 'center' }}>
-                <Button variant="primary" size="medium" onClick={() => handleSaveSection('people')}>
-                  Save
-                </Button>
-                <span style={{
-                  fontFamily: tokens.usage.typography.label.small.strong.fontFamily,
-                  fontSize: tokens.usage.typography.label.small.strong.fontSize,
-                  fontWeight: tokens.usage.typography.label.small.strong.fontWeight,
-                  color: '#191919',
-                  textDecoration: 'underline',
-                  cursor: 'pointer',
-                }}>
-                  Learn more
-                </span>
-              </div>
-            </CollapsibleSection>
-
-            {/* Tax */}
-            <CollapsibleSection
-              title="Tax"
-              expanded={expandedSections.tax}
-              onToggle={() => toggleSection('tax')}
-              sectionRef={taxRef}
-              highlighted={highlightedSection === 'tax'}
-            >
-              <SectionLabel>Board members</SectionLabel>
-              {formData.taxMembers.map((member) => (
-                <BoardMemberCard
-                  key={member.id}
-                  member={member}
-                  onChange={(updated) => updateBoardMember('taxMembers', updated)}
-                  onRemove={() => removeBoardMember('taxMembers', member.id)}
-                />
-              ))}
-              <div style={{ display: 'flex', gap: 12, paddingTop: 8 }}>
-                <Button
-                  variant="tertiary"
-                  size="medium"
-                  onClick={() => addBoardMember('taxMembers')}
-                >
-                  + Board member
-                </Button>
-              </div>
-              <div style={{ display: 'flex', gap: 12, paddingTop: 8 }}>
-                <Button variant="primary" size="medium" onClick={() => handleSaveSection('tax')}>
-                  Save
-                </Button>
-              </div>
-            </CollapsibleSection>
-
-            {/* Bank */}
-            <CollapsibleSection
-              title="Bank"
-              expanded={expandedSections.bank}
-              onToggle={() => toggleSection('bank')}
-              sectionRef={bankRef}
-              highlighted={highlightedSection === 'bank'}
-            >
-              <SectionLabel>Board members</SectionLabel>
-              {formData.bankMembers.map((member) => (
-                <BoardMemberCard
-                  key={member.id}
-                  member={member}
-                  onChange={(updated) => updateBoardMember('bankMembers', updated)}
-                  onRemove={() => removeBoardMember('bankMembers', member.id)}
-                />
-              ))}
-              <div style={{ display: 'flex', gap: 12, paddingTop: 8 }}>
-                <Button
-                  variant="tertiary"
-                  size="medium"
-                  onClick={() => addBoardMember('bankMembers')}
-                >
-                  + Board member
-                </Button>
-              </div>
-              <div style={{ display: 'flex', gap: 12, paddingTop: 8 }}>
-                <Button variant="primary" size="medium" onClick={() => handleSaveSection('bank')}>
-                  Save
-                </Button>
-              </div>
-            </CollapsibleSection>
-
+          {/* Coming Soon */}
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flex: 1,
+            padding: '0 48px 48px',
+            gap: 16,
+          }}>
+            <span style={{
+              fontFamily: tokens.base.typography.fontFamily.brand,
+              fontSize: 64,
+              fontWeight: 800,
+              lineHeight: '72px',
+              letterSpacing: '-1.5px',
+              color: '#191919',
+            }}>
+              Coming Soon
+            </span>
+            <span style={{
+              fontFamily: tokens.base.typography.fontFamily.brand,
+              fontSize: 18,
+              fontWeight: 500,
+              lineHeight: '26px',
+              color: '#909090',
+              textAlign: 'center',
+              maxWidth: 420,
+            }}>
+              We're working on the verification experience. Check back later.
+            </span>
           </div>
         </div>
       </div>

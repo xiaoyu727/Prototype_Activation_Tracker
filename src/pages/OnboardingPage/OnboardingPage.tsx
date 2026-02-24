@@ -597,7 +597,7 @@ export const OnboardingPage: React.FC = () => {
                         trailingIcon={
                           <img src={ChevronRightSvg} alt="" style={{ width: 16, height: 16, flexShrink: 0 }} />
                         }
-                        onClick={() => { if (task.id === 'store') navigate('/settings/store', { state: { venue } }); if (task.id === 'menu') navigate('/menu', { state: { venue, openChat: true } }); if (task.id === 'verify') navigate('/settings/verification', { state: { venue, openChat: true } }); if (task.id === 'orders') setOrderModalOpen(true); }}
+                        onClick={() => { if (task.id === 'store') navigate('/settings/store', { state: { venue } }); if (task.id === 'menu') navigate('/menu', { state: { venue, openChat: true } }); if (task.id === 'verify') navigate('/settings/verification', { state: { venue, openChat: true } }); }}
                       />
                     ))}
                   </List>
