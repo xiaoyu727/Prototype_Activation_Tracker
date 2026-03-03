@@ -101,8 +101,8 @@ export const ProductFormLayout: React.FC<ProductFormLayoutProps> = ({
         onExpandedChange={onSidebarExpandedChange}
         logoSrc={pedregalLogo}
         logoAlt="Pedregal"
-        venueAvatarSrc={venue === 'NV' ? bobaBloomLogoSidebar : burgeramtLogoImage}
-        venueAvatarAlt={venue === 'NV' ? 'Boba Bloom' : 'Burgeramt'}
+        venueAvatarSrc={venue === 'NV' ? burgeramtLogoImage : bobaBloomLogoSidebar}
+        venueAvatarAlt={venue === 'NV' ? 'METRO Supermarkets' : 'Boba Bloom'}
         venueName={VENUE_DISPLAY_NAMES[venue]}
         onVenueSwitch={() => navigate('/menu', { state: { venue } })}
         mainNavItems={[

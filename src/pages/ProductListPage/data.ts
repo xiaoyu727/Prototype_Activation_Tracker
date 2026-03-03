@@ -16,5 +16,5 @@ export function getInitialProductsData(): Product[] {
 
 /** Initial product list for the given venue (NV or RX). */
 export function getInitialProductsDataByVenue(venue: Venue): Product[] {
-  return venue === 'RX' ? getInitialProductsDataRX() : getInitialProductsDataNV();
+  return venue === 'RX' ? getInitialProductsDataNV() : getInitialProductsDataRX();
 }

@@ -120,8 +120,8 @@ function getInitialData(venue: Venue): FormData {
   const isNV = venue === 'NV';
   return {
     business: {
-      name: isNV ? 'Boba Bloom' : 'Burgeramt',
-      businessId: isNV ? 'Boba Bloom' : 'Burgeramt',
+      name: isNV ? 'METRO Supermarkets' : 'Boba Bloom',
+      businessId: isNV ? 'METRO Supermarkets' : 'Boba Bloom',
       address: 'Musterstraße 12, 10115 Berlin, Germany',
       legalForm: 'limited',
       registrationDate: '12-09-2012',
@@ -141,13 +141,13 @@ function getInitialData(venue: Venue): FormData {
     }],
     taxMembers: [{
       id: 'tm1',
-      fullName: isNV ? 'Boba Bloom' : 'Burgeramt',
+      fullName: isNV ? 'METRO Supermarkets' : 'Boba Bloom',
       dateOfBirth: '12-1-1994',
       nationalId: '1029101111',
     }],
     bankMembers: [{
       id: 'bm1',
-      fullName: isNV ? 'Boba Bloom' : 'Burgeramt',
+      fullName: isNV ? 'METRO Supermarkets' : 'Boba Bloom',
       dateOfBirth: '12-1-1994',
       nationalId: '1029101111',
     }],
@@ -356,12 +356,53 @@ function BoardMemberCard({
   );
 }
 
+const CheckIcon16 = () => (
+  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M3 8L6.5 11.5L13 4.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+
+function SectionSavedBanner({ label }: { label: string }) {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 8,
+      padding: '10px 14px',
+      backgroundColor: '#ECFDF3',
+      borderRadius: 10,
+      marginBottom: 4,
+    }}>
+      <span style={{ color: '#12B76A', display: 'flex' }}><CheckIcon16 /></span>
+      <span style={{
+        fontFamily: tokens.usage.typography.label.small.strong.fontFamily,
+        fontSize: tokens.usage.typography.label.small.strong.fontSize,
+        fontWeight: tokens.usage.typography.label.small.strong.fontWeight,
+        lineHeight: `${tokens.usage.typography.label.small.strong.lineHeight}px`,
+        color: '#067647',
+      }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function SectionActions({ saved, onSave }: { saved: boolean; onSave: () => void }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'flex-end', paddingTop: 8 }}>
+      <Button variant={saved ? 'secondary' : 'primary'} size="small" onClick={onSave} disabled={saved}>
+        {saved ? 'Saved' : 'Save'}
+      </Button>
+    </div>
+  );
+}
+
 export const SettingsVerificationPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { expanded: sidebarExpanded, setExpanded: setSidebarExpanded } = useSidebarState();
   const locationState = (location.state as { venue?: Venue; openChat?: boolean }) ?? {};
-  const venue: Venue = locationState.venue ?? 'NV';
+  const venue: Venue = locationState.venue ?? 'RX';
   const openChatOnMount = locationState.openChat ?? false;
 
   const [chatOpen, setChatOpen] = useState(openChatOnMount);
@@ -478,8 +519,8 @@ export const SettingsVerificationPage: React.FC = () => {
         onExpandedChange={setSidebarExpanded}
         logoSrc={pedregalLogo}
         logoAlt="Pedregal"
-        venueAvatarSrc={venue === 'NV' ? bobaBloomLogoSidebar : burgeramtLogoImage}
-        venueAvatarAlt={venue === 'NV' ? 'Boba Bloom' : 'Burgeramt'}
+        venueAvatarSrc={venue === 'NV' ? burgeramtLogoImage : bobaBloomLogoSidebar}
+        venueAvatarAlt={venue === 'NV' ? 'METRO Supermarkets' : 'Boba Bloom'}
         venueName={VENUE_DISPLAY_NAMES[venue]}
         onVenueSwitch={() => navigate('/menu', { state: { venue } })}
         mainNavItems={[
@@ -535,37 +576,286 @@ export const SettingsVerificationPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Coming Soon */}
+          {/* Verification sections */}
           <div style={{
             display: 'flex',
             flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flex: 1,
-            padding: '0 48px 48px',
             gap: 16,
+            padding: '0 48px 48px',
+            maxWidth: 720,
           }}>
-            <span style={{
-              fontFamily: tokens.base.typography.fontFamily.brand,
-              fontSize: 64,
-              fontWeight: 800,
-              lineHeight: '72px',
-              letterSpacing: '-1.5px',
-              color: '#191919',
-            }}>
-              Coming Soon
-            </span>
-            <span style={{
-              fontFamily: tokens.base.typography.fontFamily.brand,
-              fontSize: 18,
-              fontWeight: 500,
-              lineHeight: '26px',
-              color: '#909090',
-              textAlign: 'center',
-              maxWidth: 420,
-            }}>
-              We're working on the verification experience. Check back later.
-            </span>
+            {/* ─── Section 1: Business details ─── */}
+            <CollapsibleSection
+              title="Business details"
+              expanded={expandedSections.business}
+              onToggle={() => toggleSection('business')}
+              sectionRef={businessRef}
+              highlighted={highlightedSection === 'business'}
+            >
+              {savedSections.business ? (
+                <SectionSavedBanner label="Business details saved" />
+              ) : null}
+              <FormRow>
+                <Input
+                  label="Registered business name"
+                  value={formData.business.name}
+                  onChange={(v) => setFormData((prev) => ({ ...prev, business: { ...prev.business, name: v } }))}
+                  action={<EditIcon />}
+                  style={{ flex: 1 }}
+                />
+                <Input
+                  label="Business ID / HRB"
+                  value={formData.business.businessId}
+                  onChange={(v) => setFormData((prev) => ({ ...prev, business: { ...prev.business, businessId: v } }))}
+                  action={<EditIcon />}
+                  style={{ flex: 1 }}
+                />
+              </FormRow>
+              <Input
+                label="Registered address"
+                value={formData.business.address}
+                onChange={(v) => setFormData((prev) => ({ ...prev, business: { ...prev.business, address: v } }))}
+                action={<EditIcon />}
+              />
+              <FormRow>
+                <DropdownFormField label="Legal form" flex={1}>
+                  <DropdownField
+                    options={LEGAL_FORMS}
+                    value={formData.business.legalForm}
+                    onSelect={(id) => setFormData((prev) => ({ ...prev, business: { ...prev.business, legalForm: id } }))}
+                  />
+                </DropdownFormField>
+                <Input
+                  label="Registration date"
+                  value={formData.business.registrationDate}
+                  onChange={(v) => setFormData((prev) => ({ ...prev, business: { ...prev.business, registrationDate: v } }))}
+                  action={<img src={CalendarLineSvg} alt="" style={{ width: 16, height: 16, opacity: 0.45 }} />}
+                  style={{ flex: 1 }}
+                />
+              </FormRow>
+              <DropdownFormField label="Field of industry">
+                <DropdownField
+                  options={INDUSTRY_OPTIONS}
+                  value={formData.business.industry}
+                  onSelect={(id) => setFormData((prev) => ({ ...prev, business: { ...prev.business, industry: id } }))}
+                />
+              </DropdownFormField>
+              <SectionActions
+                saved={savedSections.business}
+                onSave={() => handleSaveSection('business')}
+              />
+            </CollapsibleSection>
+
+            {/* ─── Section 2: People ─── */}
+            <CollapsibleSection
+              title="People connected to your business"
+              expanded={expandedSections.people}
+              onToggle={() => toggleSection('people')}
+              sectionRef={peopleRef}
+              highlighted={highlightedSection === 'people'}
+            >
+              {savedSections.people ? (
+                <SectionSavedBanner label="People saved" />
+              ) : null}
+              <div style={{
+                backgroundColor: '#F5F5F5',
+                borderRadius: 12,
+                padding: '16px 20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 12,
+              }}>
+                <CheckboxRow
+                  checked={person.isUBO}
+                  onChange={(v) => setFormData((prev) => ({
+                    ...prev,
+                    people: prev.people.map((p) => p.id === person.id ? { ...p, isUBO: v } : p),
+                  }))}
+                  label="Ultimate Beneficial Owner (UBO)"
+                  description="Person holding 25%+ shares or significant decision-making power"
+                />
+                <CheckboxRow
+                  checked={person.isRepresentative}
+                  onChange={(v) => setFormData((prev) => ({
+                    ...prev,
+                    people: prev.people.map((p) => p.id === person.id ? { ...p, isRepresentative: v } : p),
+                  }))}
+                  label="Company representative"
+                  description="Person with legal right to represent the company"
+                />
+                <CheckboxRow
+                  checked={person.isBoardMember}
+                  onChange={(v) => setFormData((prev) => ({
+                    ...prev,
+                    people: prev.people.map((p) => p.id === person.id ? { ...p, isBoardMember: v } : p),
+                  }))}
+                  label="Board member"
+                  description="Member of the Board of Directors"
+                />
+              </div>
+              <FormRow>
+                <Input
+                  label="First name"
+                  value={person.firstName}
+                  onChange={(v) => setFormData((prev) => ({
+                    ...prev,
+                    people: prev.people.map((p) => p.id === person.id ? { ...p, firstName: v } : p),
+                  }))}
+                  action={<EditIcon />}
+                  style={{ flex: 1 }}
+                />
+                <Input
+                  label="Last name"
+                  value={person.lastName}
+                  onChange={(v) => setFormData((prev) => ({
+                    ...prev,
+                    people: prev.people.map((p) => p.id === person.id ? { ...p, lastName: v } : p),
+                  }))}
+                  action={<EditIcon />}
+                  style={{ flex: 1 }}
+                />
+              </FormRow>
+              <FormRow>
+                <DropdownFormField label="Citizenship" flex={1}>
+                  <DropdownField
+                    options={CITIZENSHIP_OPTIONS}
+                    value={person.citizenship}
+                    onSelect={(id) => setFormData((prev) => ({
+                      ...prev,
+                      people: prev.people.map((p) => p.id === person.id ? { ...p, citizenship: id } : p),
+                    }))}
+                  />
+                </DropdownFormField>
+                <Input
+                  label="Date of birth"
+                  value={person.dateOfBirth}
+                  onChange={(v) => setFormData((prev) => ({
+                    ...prev,
+                    people: prev.people.map((p) => p.id === person.id ? { ...p, dateOfBirth: v } : p),
+                  }))}
+                  action={<img src={CalendarLineSvg} alt="" style={{ width: 16, height: 16, opacity: 0.45 }} />}
+                  style={{ flex: 1 }}
+                />
+              </FormRow>
+              <FormRow>
+                <DropdownFormField label="Country of residence" flex={1}>
+                  <DropdownField
+                    options={COUNTRY_OPTIONS}
+                    value={person.countryOfResidence}
+                    onSelect={(id) => setFormData((prev) => ({
+                      ...prev,
+                      people: prev.people.map((p) => p.id === person.id ? { ...p, countryOfResidence: id } : p),
+                    }))}
+                  />
+                </DropdownFormField>
+                <Input
+                  label="National ID number"
+                  value={person.nationalId}
+                  onChange={(v) => setFormData((prev) => ({
+                    ...prev,
+                    people: prev.people.map((p) => p.id === person.id ? { ...p, nationalId: v } : p),
+                  }))}
+                  action={<EditIcon />}
+                  style={{ flex: 1 }}
+                />
+              </FormRow>
+              <SectionActions
+                saved={savedSections.people}
+                onSave={() => handleSaveSection('people')}
+              />
+            </CollapsibleSection>
+
+            {/* ─── Section 3: Tax information ─── */}
+            <CollapsibleSection
+              title="Tax information"
+              expanded={expandedSections.tax}
+              onToggle={() => toggleSection('tax')}
+              sectionRef={taxRef}
+              highlighted={highlightedSection === 'tax'}
+            >
+              {savedSections.tax ? (
+                <SectionSavedBanner label="Tax information saved" />
+              ) : null}
+              <SectionLabel>Board members</SectionLabel>
+              {formData.taxMembers.map((member) => (
+                <BoardMemberCard
+                  key={member.id}
+                  member={member}
+                  onChange={(updated) => updateBoardMember('taxMembers', updated)}
+                  onRemove={() => removeBoardMember('taxMembers', member.id)}
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => addBoardMember('taxMembers')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 0',
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  fontFamily: tokens.usage.typography.label.small.strong.fontFamily,
+                  fontSize: tokens.usage.typography.label.small.strong.fontSize,
+                  fontWeight: tokens.usage.typography.label.small.strong.fontWeight,
+                  lineHeight: `${tokens.usage.typography.label.small.strong.lineHeight}px`,
+                  color: '#191919',
+                }}
+              >
+                <span style={{ fontSize: 18, fontWeight: 500 }}>+</span> Board member
+              </button>
+              <SectionActions
+                saved={savedSections.tax}
+                onSave={() => handleSaveSection('tax')}
+              />
+            </CollapsibleSection>
+
+            {/* ─── Section 4: Bank information ─── */}
+            <CollapsibleSection
+              title="Bank information"
+              expanded={expandedSections.bank}
+              onToggle={() => toggleSection('bank')}
+              sectionRef={bankRef}
+              highlighted={highlightedSection === 'bank'}
+            >
+              {savedSections.bank ? (
+                <SectionSavedBanner label="Bank information saved" />
+              ) : null}
+              <SectionLabel>Board members</SectionLabel>
+              {formData.bankMembers.map((member) => (
+                <BoardMemberCard
+                  key={member.id}
+                  member={member}
+                  onChange={(updated) => updateBoardMember('bankMembers', updated)}
+                  onRemove={() => removeBoardMember('bankMembers', member.id)}
+                />
+              ))}
+              <button
+                type="button"
+                onClick={() => addBoardMember('bankMembers')}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '8px 0',
+                  border: 'none',
+                  background: 'none',
+                  cursor: 'pointer',
+                  fontFamily: tokens.usage.typography.label.small.strong.fontFamily,
+                  fontSize: tokens.usage.typography.label.small.strong.fontSize,
+                  fontWeight: tokens.usage.typography.label.small.strong.fontWeight,
+                  lineHeight: `${tokens.usage.typography.label.small.strong.lineHeight}px`,
+                  color: '#191919',
+                }}
+              >
+                <span style={{ fontSize: 18, fontWeight: 500 }}>+</span> Board member
+              </button>
+              <SectionActions
+                saved={savedSections.bank}
+                onSave={() => handleSaveSection('bank')}
+              />
+            </CollapsibleSection>
           </div>
         </div>
       </div>

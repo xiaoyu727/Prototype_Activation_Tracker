@@ -24,11 +24,7 @@ import nvLunchDeals from '../../images/NV/Collections/Lucnh deals.png';
 import nvSummerDeals from '../../images/NV/Collections/Summer deals.png';
 
 const COLLECTIONS_NV: Collection[] = [
-  { id: 'nv-col-1', name: 'Base offer', image: nvBaseOffer, itemCount: 24, availability: 'Available 7AM - 10AM', status: 'Active' },
-  { id: 'nv-col-2', name: 'Easter Specials', image: nvEasterSpecials, itemCount: 12, availability: '25/12/25 – 31/01/26', status: 'Scheduled' },
-  { id: 'nv-col-3', name: 'End of Year Sale', image: nvEndOfYearSale, itemCount: 18, availability: 'Available 11AM - 2AM', status: 'Inactive' },
-  { id: 'nv-col-4', name: 'Lunch deals', image: nvLunchDeals, itemCount: 8, availability: 'Available 11AM - 2AM', status: 'Active' },
-  { id: 'nv-col-5', name: 'Summer deals', image: nvSummerDeals, itemCount: 15, availability: '1/05/26 – 31/08/26', status: 'Scheduled' },
+  { id: 'nv-col-1', name: 'Boba Bloom Menu', image: nvBaseOffer, itemCount: 33, availability: 'Needs review', status: 'Inactive' },
 ];
 
 // RX: from src/images/RX/Collections
@@ -43,5 +39,5 @@ const COLLECTIONS_RX: Collection[] = [
 ];
 
 export function getCollectionsByVenue(venue: Venue): Collection[] {
-  return venue === 'RX' ? [...COLLECTIONS_RX] : [...COLLECTIONS_NV];
+  return venue === 'RX' ? [...COLLECTIONS_NV] : [...COLLECTIONS_RX];
 }

@@ -14,6 +14,8 @@ export interface ChatContext {
   onboardingTasks?: { id: string; label: string; done: boolean }[];
   /** When true, the menu page was opened from onboarding "Set up your menu" task */
   fromOnboarding?: boolean;
+  /** Which banner task the user clicked — scopes the guided chat to a single task */
+  focusTask?: 'allergens' | 'images';
   /** Verification section completion status (settings-verification page) */
   verificationStatus?: {
     businessDetails: boolean;

@@ -136,8 +136,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     chatMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
+  const prevFocusTaskRef = useRef(chatContext?.focusTask);
   useEffect(() => {
-    if (chatOpen && expanded && chatContext && !chatInitializedRef.current) {
+    if (!chatOpen || !expanded || !chatContext) return;
+    const taskChanged = chatContext.focusTask !== prevFocusTaskRef.current;
+    if (taskChanged) {
+      prevFocusTaskRef.current = chatContext.focusTask;
+      chatInitializedRef.current = false;
+    }
+    if (!chatInitializedRef.current) {
       chatInitializedRef.current = true;
       setChatMessages(getGreeting(chatContext));
       setChatChips(getSuggestedChips(chatContext));

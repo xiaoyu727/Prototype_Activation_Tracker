@@ -38,7 +38,7 @@ export const ProductDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const venue: Venue = (location.state as { venue?: Venue })?.venue ?? 'NV';
+  const venue: Venue = (location.state as { venue?: Venue })?.venue ?? 'RX';
   const { expanded: sidebarExpanded, setExpanded: setSidebarExpanded } = useSidebarState();
   const [descriptionText, setDescriptionText] = useState('');
   const [descriptionFocused, setDescriptionFocused] = useState(false);

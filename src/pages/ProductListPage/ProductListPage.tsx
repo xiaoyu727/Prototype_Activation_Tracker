@@ -72,8 +72,16 @@ import CoinBagLineSvg from '../../icons/16/coin-bag-line.svg';
 import DashboardLineSvg from '../../icons/16/dashboard-line.svg';
 import PromoBullhornLineSvg from '../../icons/16/promo-bullhorn-line.svg';
 import SettingsLineSvg from '../../icons/16/settings-line.svg';
-import { getBadgeCount } from '../../components/ChatPanel';
+import { getBadgeCount, suggestAllergens } from '../../components/ChatPanel';
 import type { ChatContext } from '../../components/ChatPanel';
+import PromoLineSvg from '../../icons/16/promo-line.svg';
+import WarningLineSvg from '../../icons/24/warning-line.svg';
+import CloseSvg from '../../icons/24/close.svg';
+import ChevronUpSvg from '../../icons/16/chevron-up.svg';
+import ChevronDownSvg from '../../icons/16/chevron-down.svg';
+import CheckCircleFillSvg from '../../icons/24/check-circle-fill.svg';
+import { StatusDotInactiveMonocolor, LogoDashpassMonocolor } from '@doordash/prism-react';
+import { EU_ALLERGENS, type Allergen } from './types';
 
 /** Renders a 16px icon from src/icons/16 as white for the sidebar. */
 function SidebarIcon({ src }: { src: string }) {
@@ -84,6 +92,787 @@ function SidebarIcon({ src }: { src: string }) {
       role="presentation"
       style={{ width: 16, height: 16, flexShrink: 0, filter: 'brightness(0) invert(1)' }}
     />
+  );
+}
+
+interface MenuStats {
+  photos: number; descriptions: number; prices: number;
+  photosCount: number; descriptionsCount: number; pricesCount: number;
+  total: number;
+}
+function getMenuCompletionStats(products: Product[]): MenuStats {
+  if (products.length === 0) return { photos: 100, descriptions: 100, prices: 100, photosCount: 0, descriptionsCount: 0, pricesCount: 0, total: 0 };
+  const total = products.length;
+  const withPhoto = products.filter((p) => p.image && !p.image.includes('placeholder')).length;
+  const withDesc = products.filter((p) => p.description && p.description.trim().length > 0).length;
+  const withPrice = products.filter((p) => {
+    const num = parseFloat(p.price.replace(/[^0-9.]/g, ''));
+    return !isNaN(num) && num > 0;
+  }).length;
+  return {
+    photos: Math.round((withPhoto / total) * 100),
+    descriptions: Math.round((withDesc / total) * 100),
+    prices: Math.round((withPrice / total) * 100),
+    photosCount: withPhoto, descriptionsCount: withDesc, pricesCount: withPrice,
+    total,
+  };
+}
+
+/* ─── Allergen Review View ─── */
+
+type AllergenChoice = { type: 'allergen-free' } | { type: 'has-allergens'; allergens: Allergen[] };
+
+function AllergenReviewView({
+  products,
+  onClose,
+  onConfirm,
+  initialChoices,
+}: {
+  products: Product[];
+  onClose: () => void;
+  onConfirm: (choices: Record<string, AllergenChoice>) => void;
+  initialChoices?: Record<string, AllergenChoice>;
+}) {
+  const [missingExpanded, setMissingExpanded] = useState(true);
+  const [reviewExpanded, setReviewExpanded] = useState(false);
+  const [choices, setChoices] = useState<Record<string, AllergenChoice>>(initialChoices ?? {});
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const missingItems = products.filter((p) => !p.allergensDeclared);
+  const declaredItems = products.filter((p) => p.allergensDeclared);
+  const totalProducts = products.length;
+
+  const isItemHandled = (productId: string) => productId in choices;
+  const handledCount = missingItems.filter((p) => isItemHandled(p.id)).length;
+  const remaining = missingItems.length - handledCount;
+  const allHandled = remaining === 0 && missingItems.length > 0;
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleAllergenToggle = (productId: string, allergen: Allergen) => {
+    setChoices((prev) => {
+      const existing = prev[productId];
+      const current = existing?.type === 'has-allergens' ? existing.allergens : [];
+      const has = current.includes(allergen);
+      const updated = has ? current.filter((a) => a !== allergen) : [...current, allergen];
+      if (updated.length === 0) {
+        const next = { ...prev };
+        delete next[productId];
+        return next;
+      }
+      return { ...prev, [productId]: { type: 'has-allergens', allergens: updated } };
+    });
+  };
+
+  const handleAllergenFree = (productId: string) => {
+    setChoices((prev) => {
+      if (prev[productId]?.type === 'allergen-free') {
+        const next = { ...prev };
+        delete next[productId];
+        return next;
+      }
+      return { ...prev, [productId]: { type: 'allergen-free' } };
+    });
+    setOpenDropdown(null);
+  };
+
+  const getChosenAllergens = (product: Product): Allergen[] => {
+    const choice = choices[product.id];
+    if (choice?.type === 'has-allergens') return choice.allergens;
+    if (choice?.type === 'allergen-free') return [];
+    return product.allergens ?? [];
+  };
+
+  const isAllergenFree = (productId: string): boolean => {
+    return choices[productId]?.type === 'allergen-free';
+  };
+
+  const renderMissingRow = (product: Product) => {
+    const chosen = getChosenAllergens(product);
+    const handled = isItemHandled(product.id);
+    const isFree = isAllergenFree(product.id);
+    const isDropdownOpen = openDropdown === product.id;
+
+    return (
+      <tr
+        key={product.id}
+        style={{ borderBottom: '1px solid #EBEBEB' }}
+      >
+        {/* Status indicator */}
+        <td style={{ padding: '12px 12px 12px 20px', width: 36 }}>
+          {handled ? (
+            <img src={CheckCircleFillSvg} alt="Done" style={{ width: 20, height: 20 }} />
+          ) : (
+            <div style={{
+              width: 20, height: 20, borderRadius: '50%',
+              border: '2px solid #D9DADA',
+            }} />
+          )}
+        </td>
+        {/* Image + Name */}
+        <td style={{ padding: '12px 8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <img
+              src={product.image}
+              alt=""
+              style={{
+                width: 32, height: 32, borderRadius: 6, objectFit: 'cover',
+                backgroundColor: '#F0F0F0', flexShrink: 0,
+              }}
+            />
+            <span style={{
+              fontFamily: tokens.base.typography.fontFamily.brand,
+              fontSize: 14, fontWeight: 500, lineHeight: '20px',
+              color: '#181818',
+            }}>
+              {product.name}
+            </span>
+          </div>
+        </td>
+        {/* Allergen select */}
+        <td style={{ padding: '12px 8px', position: 'relative' }}>
+          <div ref={isDropdownOpen ? dropdownRef : undefined} style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+              {isFree ? (
+                <span
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '3px 6px 3px 8px', borderRadius: 6,
+                    backgroundColor: '#E8F5E9',
+                    fontFamily: tokens.base.typography.fontFamily.brand,
+                    fontSize: 12, fontWeight: 510, lineHeight: '16px',
+                    color: '#2E7D32', whiteSpace: 'nowrap',
+                  }}
+                >
+                  Allergen-free
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleAllergenFree(product.id); }}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0,
+                    }}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                      <path d="M4.5 4.5L11.5 11.5M11.5 4.5L4.5 11.5" stroke="#2E7D32" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </span>
+              ) : (
+                <>
+                  <button
+                    onClick={() => setOpenDropdown(isDropdownOpen ? null : product.id)}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '4px 8px', borderRadius: 6,
+                      border: '1px solid #D9DADA',
+                      backgroundColor: '#FFFFFF', cursor: 'pointer',
+                      fontFamily: tokens.base.typography.fontFamily.brand,
+                      fontSize: 12, fontWeight: 510, lineHeight: '16px',
+                      color: '#6C6C6C', whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Choose
+                    <img src={ChevronDownSvg} alt="" style={{ width: 12, height: 12, flexShrink: 0, opacity: 0.5 }} />
+                  </button>
+                  {chosen.map((allergen) => (
+                    <span
+                      key={allergen}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 4,
+                        padding: '3px 6px 3px 8px', borderRadius: 6,
+                        backgroundColor: '#F1F1F1',
+                        fontFamily: tokens.base.typography.fontFamily.brand,
+                        fontSize: 12, fontWeight: 510, lineHeight: '16px',
+                        color: '#181818', whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {allergen}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleAllergenToggle(product.id, allergen); }}
+                        style={{
+                          background: 'none', border: 'none', cursor: 'pointer',
+                          padding: 0, display: 'flex', alignItems: 'center', flexShrink: 0,
+                        }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                          <path d="M4.5 4.5L11.5 11.5M11.5 4.5L4.5 11.5" stroke="#6C6C6C" strokeWidth="1.5" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    </span>
+                  ))}
+                </>
+              )}
+            </div>
+
+            {isDropdownOpen && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, marginTop: 4,
+                backgroundColor: '#FFFFFF', border: '1px solid #E4E4E4',
+                borderRadius: 12, padding: '6px 0', zIndex: 100,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                maxHeight: 280, overflowY: 'auto', minWidth: 220,
+              }}>
+                {/* Allergen-free option */}
+                <button
+                  onClick={() => handleAllergenFree(product.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 8, width: '100%',
+                    padding: '10px 14px', border: 'none', cursor: 'pointer',
+                    fontSize: 13, fontWeight: 590, color: isFree ? '#2E7D32' : '#181818',
+                    fontFamily: tokens.base.typography.fontFamily.brand,
+                    backgroundColor: isFree ? '#E8F5E9' : 'transparent',
+                    borderBottom: '1px solid #EBEBEB',
+                  }}
+                  onMouseEnter={(e) => { if (!isFree) e.currentTarget.style.backgroundColor = '#F5F5F5'; }}
+                  onMouseLeave={(e) => { if (!isFree) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                >
+                  {isFree && (
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M3.5 8.5L6.5 11.5L12.5 5.5" stroke="#2E7D32" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                  Allergen-free
+                </button>
+                {EU_ALLERGENS.map((allergen) => (
+                  <label
+                    key={allergen}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '8px 14px', cursor: 'pointer',
+                      fontSize: 13, fontWeight: 500, color: '#181818',
+                      fontFamily: tokens.base.typography.fontFamily.brand,
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F5')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    <Checkbox
+                      checked={chosen.includes(allergen)}
+                      onChange={() => handleAllergenToggle(product.id, allergen)}
+                    />
+                    {allergen}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
+  const renderReviewRow = (product: Product) => {
+    const allergens = product.allergens ?? [];
+    const isDropdownOpen = openDropdown === product.id;
+    const editedChoice = choices[product.id];
+    const displayAllergens = editedChoice?.type === 'has-allergens'
+      ? editedChoice.allergens
+      : editedChoice?.type === 'allergen-free' ? [] : allergens;
+
+    return (
+      <tr key={product.id} style={{ borderBottom: '1px solid #EBEBEB' }}>
+        {/* Status */}
+        <td style={{ padding: '12px 12px 12px 20px', width: 36 }}>
+          <img src={CheckCircleFillSvg} alt="Declared" style={{ width: 20, height: 20 }} />
+        </td>
+        {/* Image + Name */}
+        <td style={{ padding: '12px 8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <img
+              src={product.image}
+              alt=""
+              style={{
+                width: 32, height: 32, borderRadius: 6, objectFit: 'cover',
+                backgroundColor: '#F0F0F0', flexShrink: 0,
+              }}
+            />
+            <span style={{
+              fontFamily: tokens.base.typography.fontFamily.brand,
+              fontSize: 14, fontWeight: 500, lineHeight: '20px',
+              color: '#181818',
+            }}>
+              {product.name}
+            </span>
+          </div>
+        </td>
+        {/* Allergen tags (read-only style, clickable to edit) */}
+        <td style={{ padding: '12px 8px', position: 'relative' }}>
+          <div ref={isDropdownOpen ? dropdownRef : undefined} style={{ position: 'relative' }}>
+            <div
+              style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', cursor: 'pointer' }}
+              onClick={() => setOpenDropdown(isDropdownOpen ? null : product.id)}
+            >
+              {displayAllergens.length > 0 ? displayAllergens.map((allergen) => (
+                <span
+                  key={allergen}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center',
+                    padding: '3px 8px', borderRadius: 6,
+                    backgroundColor: '#F1F1F1',
+                    fontFamily: tokens.base.typography.fontFamily.brand,
+                    fontSize: 12, fontWeight: 510, lineHeight: '16px',
+                    color: '#181818', whiteSpace: 'nowrap',
+                  }}
+                >
+                  {allergen}
+                </span>
+              )) : (
+                <span style={{
+                  fontFamily: tokens.base.typography.fontFamily.brand,
+                  fontSize: 12, fontWeight: 510, lineHeight: '16px',
+                  color: '#2E7D32',
+                  padding: '3px 8px', borderRadius: 6,
+                  backgroundColor: '#E8F5E9',
+                }}>
+                  Allergen-free
+                </span>
+              )}
+            </div>
+
+            {isDropdownOpen && (
+              <div style={{
+                position: 'absolute', top: '100%', left: 0, marginTop: 4,
+                backgroundColor: '#FFFFFF', border: '1px solid #E4E4E4',
+                borderRadius: 12, padding: '6px 0', zIndex: 100,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                maxHeight: 280, overflowY: 'auto', minWidth: 220,
+              }}>
+                {EU_ALLERGENS.map((allergen) => (
+                  <label
+                    key={allergen}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '8px 14px', cursor: 'pointer',
+                      fontSize: 13, fontWeight: 500, color: '#181818',
+                      fontFamily: tokens.base.typography.fontFamily.brand,
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#F5F5F5')}
+                    onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    <Checkbox
+                      checked={displayAllergens.includes(allergen)}
+                      onChange={() => handleAllergenToggle(product.id, allergen)}
+                    />
+                    {allergen}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
+  const sectionHeader = (
+    title: string,
+    subtitle: string,
+    expanded: boolean,
+    onToggle: () => void,
+    variant: 'warning' | 'info',
+  ) => (
+    <button
+      onClick={onToggle}
+      style={{
+        display: 'flex', alignItems: 'center', width: '100%',
+        padding: '20px 24px', border: 'none', cursor: 'pointer',
+        backgroundColor: 'transparent', gap: 10,
+      }}
+    >
+      {variant === 'warning' && (
+        <img src={WarningLineSvg} alt="" style={{ width: 20, height: 20, flexShrink: 0, filter: 'sepia(1) saturate(5) hue-rotate(-10deg)' }} />
+      )}
+      {variant === 'info' && (
+        <img src={CheckCircleFillSvg} alt="" style={{ width: 20, height: 20, flexShrink: 0 }} />
+      )}
+      <span style={{
+        fontFamily: tokens.base.typography.fontFamily.brand,
+        fontSize: 16, fontWeight: 700, lineHeight: '22px', color: '#181818',
+        flex: 1, textAlign: 'left',
+      }}>
+        {title}
+      </span>
+      <span style={{
+        fontFamily: tokens.base.typography.fontFamily.brand,
+        fontSize: 14, fontWeight: 510, lineHeight: '20px', color: '#6C6C6C',
+      }}>
+        {subtitle}
+      </span>
+      <img
+        src={expanded ? ChevronUpSvg : ChevronDownSvg}
+        alt=""
+        style={{ width: 16, height: 16, flexShrink: 0, opacity: 0.5 }}
+      />
+    </button>
+  );
+
+  const tableHeader = (
+    <thead>
+      <tr style={{ borderBottom: '1px solid #EBEBEB' }}>
+        <th style={{ padding: '10px 12px 10px 20px', width: 36 }}></th>
+        <th style={{
+          padding: '10px 8px', textAlign: 'left', width: '35%',
+          fontFamily: tokens.base.typography.fontFamily.brand,
+          fontSize: 13, fontWeight: 510, lineHeight: '18px', color: '#6C6C6C',
+        }}>
+          Name
+        </th>
+        <th style={{
+          padding: '10px 8px', textAlign: 'left',
+          fontFamily: tokens.base.typography.fontFamily.brand,
+          fontSize: 13, fontWeight: 510, lineHeight: '18px', color: '#6C6C6C',
+        }}>
+          Allergen
+        </th>
+      </tr>
+    </thead>
+  );
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+      {/* Header */}
+      <div style={{ padding: '40px 48px 24px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <h1 style={{
+              margin: 0,
+              fontFamily: tokens.base.typography.fontFamily.brand,
+              fontSize: 32, fontWeight: 700, lineHeight: '40px',
+              letterSpacing: '-0.5px', color: '#181818',
+            }}>
+              Review
+            </h1>
+            <p style={{
+              margin: 0,
+              fontFamily: tokens.base.typography.fontFamily.brand,
+              fontSize: 14, fontWeight: 500, lineHeight: '20px',
+              color: '#6C6C6C',
+            }}>
+              {totalProducts} products detected. Review your changes: resolve errors, and check updated and added products before proceeding.
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: 8, borderRadius: 8, flexShrink: 0,
+            }}
+          >
+            <img src={CloseSvg} alt="Close" style={{ width: 24, height: 24 }} />
+          </button>
+        </div>
+      </div>
+
+      {/* Scrollable sections */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '0 48px', paddingBottom: 100 }}>
+        {/* Section 1: Missing allergen details */}
+        <div style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: 16,
+          border: '1px solid #E4E4E4',
+          marginBottom: 16,
+          overflow: 'hidden',
+        }}>
+          {sectionHeader(
+            'Missing allergen details',
+            remaining > 0 ? `${remaining} of ${missingItems.length} remaining` : `All ${missingItems.length} done`,
+            missingExpanded,
+            () => setMissingExpanded((v) => !v),
+            remaining > 0 ? 'warning' : 'info',
+          )}
+          {missingExpanded && missingItems.length > 0 && (
+            <div style={{ padding: '0 0 8px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                {tableHeader}
+                <tbody>
+                  {missingItems.map((p) => renderMissingRow(p))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Section 2: Review allergen details */}
+        <div style={{
+          backgroundColor: '#FFFFFF',
+          borderRadius: 16,
+          border: '1px solid #E4E4E4',
+          overflow: 'hidden',
+        }}>
+          {sectionHeader(
+            'Review allergen details',
+            `${declaredItems.length} items`,
+            reviewExpanded,
+            () => setReviewExpanded((v) => !v),
+            'info',
+          )}
+          {reviewExpanded && declaredItems.length > 0 && (
+            <div style={{ padding: '0 0 8px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+                {tableHeader}
+                <tbody>
+                  {declaredItems.map((p) => renderReviewRow(p))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Sticky confirm CTA */}
+      <div style={{
+        position: 'sticky',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        padding: '16px 48px',
+        backgroundColor: '#F8F8F8',
+        borderTop: '1px solid #E4E4E4',
+        display: 'flex',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        gap: 12,
+        zIndex: 10,
+      }}>
+        {remaining > 0 && (
+          <span style={{
+            fontFamily: tokens.base.typography.fontFamily.brand,
+            fontSize: 14, fontWeight: 500, lineHeight: '20px',
+            color: '#6C6C6C', marginRight: 'auto',
+          }}>
+            {remaining} item{remaining !== 1 ? 's' : ''} still need allergen details
+          </span>
+        )}
+        <Button variant="tertiary" size="large" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          size="large"
+          onClick={() => onConfirm(choices)}
+          disabled={!allHandled}
+        >
+          Confirm allergen data
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+const BANNER_KEYFRAMES_ID = 'menu-review-banner-keyframes';
+function ensureBannerKeyframes() {
+  if (document.getElementById(BANNER_KEYFRAMES_ID)) return;
+  const style = document.createElement('style');
+  style.id = BANNER_KEYFRAMES_ID;
+  style.textContent = `
+    @keyframes bannerSlideIn {
+      0% { opacity: 0; transform: translateY(-18px) scale(0.98); }
+      60% { opacity: 1; transform: translateY(4px) scale(1.005); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    @keyframes blobDrift1 {
+      0%   { transform: translate(0, 0) scale(1); }
+      33%  { transform: translate(12px, -8px) scale(1.12); }
+      66%  { transform: translate(-6px, 6px) scale(0.95); }
+      100% { transform: translate(0, 0) scale(1); }
+    }
+    @keyframes blobDrift2 {
+      0%   { transform: translate(0, 0) scale(1); }
+      33%  { transform: translate(-10px, 10px) scale(1.08); }
+      66%  { transform: translate(8px, -4px) scale(0.92); }
+      100% { transform: translate(0, 0) scale(1); }
+    }
+    @keyframes blobDrift3 {
+      0%   { transform: translate(0, 0) scale(1); }
+      33%  { transform: translate(6px, 8px) scale(1.1); }
+      66%  { transform: translate(-10px, -6px) scale(0.9); }
+      100% { transform: translate(0, 0) scale(1); }
+    }
+    @keyframes cardReveal {
+      0%   { opacity: 0; transform: translateY(12px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+const CARD_BLOB_STYLES = {
+  blob1: { position: 'absolute' as const, left: 280, bottom: -89, width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,59,48,0.25) 0%, transparent 70%)', filter: 'blur(30px)', pointerEvents: 'none' as const, animation: 'blobDrift1 6s ease-in-out infinite' },
+  blob2: { position: 'absolute' as const, left: -33, top: -89, width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,149,0,0.2) 0%, transparent 70%)', filter: 'blur(30px)', pointerEvents: 'none' as const, animation: 'blobDrift2 7s ease-in-out infinite' },
+  blob3: { position: 'absolute' as const, right: -79, top: 20, width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,45,85,0.18) 0%, transparent 70%)', filter: 'blur(30px)', pointerEvents: 'none' as const, animation: 'blobDrift3 8s ease-in-out infinite' },
+};
+
+
+function MenuReviewBanner({ stats, onTaskClick, animate }: {
+  stats: MenuStats;
+  onTaskClick: (task: 'allergens' | 'images') => void;
+  animate?: boolean;
+}) {
+  useEffect(() => { ensureBannerKeyframes(); }, []);
+  const photosMissing = stats.total - stats.photosCount;
+  const descMissing = stats.total - stats.descriptionsCount;
+
+  const cards: {
+    key: string;
+    icon: React.ReactNode;
+    title: string;
+    body: string;
+    complete: boolean;
+    footer: React.ReactNode;
+  }[] = [
+    {
+      key: 'prices',
+      icon: <LogoDashpassMonocolor />,
+      title: 'Prices',
+      body: 'All prices are set',
+      complete: true,
+      footer: (
+        <Button variant="tertiary" size="small">Review details</Button>
+      ),
+    },
+    {
+      key: 'allergens',
+      icon: <StatusDotInactiveMonocolor />,
+      title: 'Declare allergen info',
+      body: descMissing > 0
+        ? `${descMissing} of ${stats.total} items need allergen details`
+        : `All ${stats.total} items have allergen info`,
+      complete: descMissing === 0,
+      footer: descMissing > 0 ? (
+        <Button
+          variant="primary"
+          size="small"
+          onClick={() => onTaskClick('allergens')}
+          icon={<img src={PromoLineSvg} alt="" style={{ width: 14, height: 14, filter: 'brightness(0) invert(1)' }} />}
+        >
+          Update
+        </Button>
+      ) : (
+        <Button variant="tertiary" size="small">Review details</Button>
+      ),
+    },
+    {
+      key: 'photos',
+      icon: <StatusDotInactiveMonocolor />,
+      title: 'Add photos',
+      body: photosMissing > 0
+        ? `${photosMissing} of ${stats.total} items are missing photos`
+        : `All ${stats.total} items have photos`,
+      complete: photosMissing === 0,
+      footer: photosMissing > 0 ? (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <Button
+            variant="primary"
+            size="small"
+            onClick={() => onTaskClick('images')}
+            icon={<img src={PromoLineSvg} alt="" style={{ width: 14, height: 14, filter: 'brightness(0) invert(1)' }} />}
+          >
+            Upload
+          </Button>
+          <Button variant="tertiary" size="small" onClick={() => window.open('#', '_blank')}>
+            Book a photoshoot
+          </Button>
+        </div>
+      ) : (
+        <Button variant="tertiary" size="small">Review details</Button>
+      ),
+    },
+  ];
+
+  return (
+    <div style={{
+      backgroundColor: '#FFFFFF',
+      borderRadius: 32,
+      padding: 24,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 16,
+      ...(animate ? { animation: 'bannerSlideIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards' } : {}),
+    }}>
+      {/* Header */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <p style={{
+          margin: 0,
+          fontFamily: tokens.base.typography.fontFamily.brand,
+          fontSize: 16, fontWeight: 590, lineHeight: '22px',
+          letterSpacing: '-0.01px', color: '#181818',
+        }}>
+          Your menu needs a few updates
+        </p>
+        <p style={{
+          margin: 0,
+          fontFamily: tokens.base.typography.fontFamily.brand,
+          fontSize: 14, fontWeight: 500, lineHeight: '20px',
+          letterSpacing: '-0.01px', color: '#6C6C6C',
+        }}>
+          We added {stats.total} items from your shared menu. Here's what still needs attention.
+        </p>
+      </div>
+
+      {/* Action cards */}
+      <div style={{ display: 'flex', gap: 16 }}>
+        {cards.map((card, idx) => (
+          <div key={card.key} style={{
+            flex: 1,
+            position: 'relative',
+            backgroundColor: '#FFFFFF',
+            border: '1px solid #E4E4E4',
+            borderRadius: 20,
+            padding: 20,
+            overflow: 'hidden',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+            ...(animate ? {
+              opacity: 0,
+              animation: `cardReveal 0.5s cubic-bezier(0.22, 1, 0.36, 1) ${0.3 + idx * 0.12}s forwards`,
+            } : {}),
+          }}>
+            {/* Decorative blurred ellipses */}
+            <div style={CARD_BLOB_STYLES.blob1} />
+            <div style={CARD_BLOB_STYLES.blob2} />
+            <div style={CARD_BLOB_STYLES.blob3} />
+
+            {/* Icon — bare 24px, no container */}
+            <div style={{ flexShrink: 0, position: 'relative' }}>
+              {card.icon}
+            </div>
+
+            {/* Content: title + body + footer */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, position: 'relative', flex: 1 }}>
+              {/* Title + body */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <span style={{
+                  fontFamily: tokens.base.typography.fontFamily.brand,
+                  fontSize: 16, fontWeight: 700, lineHeight: '22px',
+                  letterSpacing: '-0.01px', color: '#191919',
+                }}>
+                  {card.title}
+                </span>
+                <span style={{
+                  fontFamily: tokens.base.typography.fontFamily.brand,
+                  fontSize: 14, fontWeight: 500, lineHeight: '20px',
+                  letterSpacing: '-0.01px', color: '#606060',
+                }}>
+                  {card.body}
+                </span>
+              </div>
+
+              {/* Footer */}
+              <div>{card.footer}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -168,14 +957,18 @@ export const ProductListPage: React.FC = () => {
 
   const tableTopRef = useRef<HTMLDivElement>(null);
 
-  const [venue, setVenue] = useState<Venue>('NV');
+  const [venue, setVenue] = useState<Venue>('RX');
   const [chatOpen, setChatOpen] = useState(false);
   const [fromOnboarding, setFromOnboarding] = useState(false);
+  const [focusTask, setFocusTask] = useState<'allergens' | 'images' | undefined>();
+  const [bannerAnimate, setBannerAnimate] = useState(false);
+  const [allergenReviewMode, setAllergenReviewMode] = useState(false);
+  const [allergenInitialChoices, setAllergenInitialChoices] = useState<Record<string, AllergenChoice> | undefined>();
   const [contentRevealReady, setContentRevealReady] = useState(true);
-  const [productsData, setProductsData] = useState<Product[]>(() => getInitialProductsDataByVenue('NV'));
-  const fullProductsRef = useRef<Product[]>(getInitialProductsDataByVenue('NV'));
+  const [productsData, setProductsData] = useState<Product[]>(() => getInitialProductsDataByVenue('RX'));
+  const fullProductsRef = useRef<Product[]>(getInitialProductsDataByVenue('RX'));
   const categoryOptions = getCategoryOptionsByVenue(venue);
-  const [collectionsData, setCollectionsData] = useState<Collection[]>(() => getCollectionsByVenue('NV'));
+  const [collectionsData, setCollectionsData] = useState<Collection[]>(() => getCollectionsByVenue('RX'));
 
   useEffect(() => {
     if (venueFromNav !== undefined) {
@@ -196,9 +989,8 @@ export const ProductListPage: React.FC = () => {
       }
       setCollectionsData(getCollectionsByVenue(venueFromNav));
       if (state?.openChat) {
-        setChatOpen(true);
         setFromOnboarding(true);
-        setSidebarExpanded(true);
+        setBannerAnimate(true);
       }
       navigate(location.pathname, { replace: true, state: {} });
     }
@@ -1256,6 +2048,7 @@ export const ProductListPage: React.FC = () => {
     page: 'menu',
     products: fullProductsRef.current,
     fromOnboarding,
+    focusTask,
   };
   const chatBadgeCount = getBadgeCount(chatContext);
 
@@ -1270,16 +2063,21 @@ export const ProductListPage: React.FC = () => {
         })
       );
     } else if (actionId === 'guide-allergens') {
-      // Filter table to show only items missing allergen data
-      setProductsData(fullProductsRef.current.filter((p) => !p.allergensDeclared));
+      setAllergenInitialChoices(undefined);
+      setAllergenReviewMode(true);
     } else if (actionId === 'guide-apply-allergens') {
-      // Apply allergen suggestions and restore full list
-      const updated = fullProductsRef.current.map((p) => {
-        if (p.allergensDeclared) return p;
-        return { ...p, allergensDeclared: true, allergens: p.allergens ?? [] };
+      const prefilled: Record<string, AllergenChoice> = {};
+      fullProductsRef.current.forEach((p) => {
+        if (p.allergensDeclared) return;
+        const suggested = suggestAllergens(p.name);
+        if (suggested.length > 0) {
+          prefilled[p.id] = { type: 'has-allergens', allergens: suggested };
+        } else {
+          prefilled[p.id] = { type: 'allergen-free' };
+        }
       });
-      fullProductsRef.current = updated;
-      setProductsData(updated);
+      setAllergenInitialChoices(prefilled);
+      setAllergenReviewMode(true);
     } else if (actionId === 'guide-images') {
       // Filter table to show only items missing images
       setProductsData(fullProductsRef.current.filter((p) => !p.image));
@@ -1360,8 +2158,8 @@ export const ProductListPage: React.FC = () => {
         onExpandedChange={setSidebarExpanded}
         logoSrc={pedregalLogo}
         logoAlt="Pedregal"
-        venueAvatarSrc={venue === 'NV' ? bobaBloomLogoSidebar : burgeramtLogoImage}
-        venueAvatarAlt={venue === 'NV' ? 'Boba Bloom' : 'Burgeramt Prenzlauer Berg'}
+        venueAvatarSrc={venue === 'NV' ? burgeramtLogoImage : bobaBloomLogoSidebar}
+        venueAvatarAlt={venue === 'NV' ? 'METRO Supermarkets' : 'Boba Bloom'}
         venueName={VENUE_DISPLAY_NAMES[venue]}
         onVenueSwitch={handleVenueSwitch}
         mainNavItems={[
@@ -1406,6 +2204,30 @@ export const ProductListPage: React.FC = () => {
             overflowY: 'auto',
           }}
         >
+          {allergenReviewMode ? (
+            <AllergenReviewView
+              products={fullProductsRef.current}
+              initialChoices={allergenInitialChoices}
+              onClose={() => setAllergenReviewMode(false)}
+              onConfirm={(reviewChoices) => {
+                const updated = fullProductsRef.current.map((p) => {
+                  const choice = reviewChoices[p.id];
+                  if (choice?.type === 'allergen-free') {
+                    return { ...p, allergensDeclared: true, allergens: [] as Allergen[] };
+                  }
+                  if (choice?.type === 'has-allergens') {
+                    return { ...p, allergensDeclared: true, allergens: choice.allergens };
+                  }
+                  return p;
+                });
+                fullProductsRef.current = updated;
+                setProductsData(updated);
+                setAllergenReviewMode(false);
+                setAllergenInitialChoices(undefined);
+              }}
+            />
+          ) : (
+          <>
           {/* Header */}
           <div
             style={{
@@ -1522,6 +2344,27 @@ export const ProductListPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Menu review banner */}
+          {(() => {
+            const stats = getMenuCompletionStats(productsData);
+            const showBanner = stats.photos < 100 || stats.descriptions < 100 || stats.prices < 100;
+            if (!showBanner) return null;
+            return (
+              <div style={{ padding: '0 48px 16px' }}>
+                <MenuReviewBanner
+                  stats={stats}
+                  animate={bannerAnimate}
+                  onTaskClick={(task) => {
+                    setFromOnboarding(true);
+                    setFocusTask(task);
+                    setChatOpen(true);
+                    setSidebarExpanded(true);
+                  }}
+                />
+              </div>
+            );
+          })()}
+
           {/* Table Wrapper – hugs content (no min height); content disappears instantly on venue switch, appears after 1s with spinner */}
           <div
             style={{
@@ -1606,7 +2449,6 @@ export const ProductListPage: React.FC = () => {
                                 <MenuIcon />
                               </span>
                             ),
-                            label: 'List view',
                           },
                           {
                             value: 'grid',
@@ -1615,7 +2457,6 @@ export const ProductListPage: React.FC = () => {
                                 <GridIcon />
                               </span>
                             ),
-                            label: 'Grid view',
                           },
                         ]}
                         value={viewMode}
@@ -2019,7 +2860,6 @@ export const ProductListPage: React.FC = () => {
                             <MenuIcon />
                           </span>
                         ),
-                        label: 'List view',
                       },
                       {
                         value: 'grid',
@@ -2028,7 +2868,6 @@ export const ProductListPage: React.FC = () => {
                             <GridIcon />
                           </span>
                         ),
-                        label: 'Grid view',
                       },
                     ]}
                     value={viewMode}
@@ -2390,6 +3229,8 @@ export const ProductListPage: React.FC = () => {
               )}
             </div>
           </div>
+          </>
+          )}
         </div>
       </div>
       

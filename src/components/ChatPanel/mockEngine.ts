@@ -23,7 +23,7 @@ const ALLERGEN_HINTS: Record<string, Allergen[]> = {
   beyond: ['Soy', 'Cereals containing gluten'],
 };
 
-function suggestAllergens(name: string): Allergen[] {
+export function suggestAllergens(name: string): Allergen[] {
   const lower = name.toLowerCase();
   const found = new Set<Allergen>();
   for (const [keyword, allergens] of Object.entries(ALLERGEN_HINTS)) {
@@ -60,9 +60,9 @@ function buildChecklistCard(ctx: ChatContext): ChatMessage {
     },
     {
       id: 'guide-images',
-      name: `${completedImages ? '✓' : '○'} Add product images`,
+      name: `${completedImages ? '✓' : '○'} Upload images`,
       detail: completedImages ? 'Complete' : `${missingImages} items remaining`,
-      actionLabel: completedImages ? undefined : 'Show items',
+      actionLabel: completedImages ? undefined : 'Upload',
     },
   ];
 
@@ -127,8 +127,52 @@ export function getGreeting(ctx: ChatContext): ChatMessage[] {
   }
 
   if (ctx.page === 'menu') {
-    const { total } = menuStats(ctx);
+    const { total, missingAllergens: ma, missingImages: mi } = menuStats(ctx);
     const msgs: ChatMessage[] = [];
+
+    if (ctx.fromOnboarding && ctx.focusTask) {
+      const task = ctx.focusTask;
+      const completedAllergens = total > 0 && ma === 0;
+      const completedImages = total > 0 && mi === 0;
+      const completedCount = [completedAllergens, completedImages].filter(Boolean).length;
+
+      if (task === 'allergens') {
+        msgs.push({
+          id: msgId(), role: 'ai', type: 'text', timestamp: now,
+          text: `Let's declare allergens for your menu. I'll guide you through the changes — it only takes a moment.`,
+        });
+        const items: MessageDataItem[] = [{
+          id: 'guide-allergens',
+          name: `${completedAllergens ? '✓' : '○'} Declare allergens for all items`,
+          detail: completedAllergens ? 'Complete' : `${ma} items remaining`,
+          actionLabel: completedAllergens ? undefined : 'Fix now',
+        }];
+        msgs.push({
+          id: msgId(), role: 'ai', type: 'suggestion-card', timestamp: now + 1,
+          text: `Menu readiness (${completedCount}/2)`,
+          items,
+          progress: Math.round((completedCount / 2) * 100),
+        });
+      } else {
+        msgs.push({
+          id: msgId(), role: 'ai', type: 'text', timestamp: now,
+          text: `Let's add photos to your menu items. I'll guide you through the changes — it only takes a moment.`,
+        });
+        const items: MessageDataItem[] = [{
+          id: 'guide-images',
+          name: `${completedImages ? '✓' : '○'} Upload images`,
+          detail: completedImages ? 'Complete' : `${mi} items remaining`,
+          actionLabel: completedImages ? undefined : 'Upload',
+        }];
+        msgs.push({
+          id: msgId(), role: 'ai', type: 'suggestion-card', timestamp: now + 1,
+          text: `Menu readiness (${completedCount}/2)`,
+          items,
+          progress: Math.round((completedCount / 2) * 100),
+        });
+      }
+      return msgs;
+    }
 
     if (ctx.fromOnboarding) {
       msgs.push({

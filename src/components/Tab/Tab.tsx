@@ -70,12 +70,13 @@ export const Tab: React.FC<TabProps> = ({ items, activeIndex = 0, onTabChange, c
       }}
     >
       {items.map((item, index) => (
-        <TabItem
-          key={index}
-          {...item}
-          active={index === activeIndex}
-          onItemClick={() => onTabChange?.(index)}
-        />
+        <div key={index} data-tab-index={index} style={{ display: 'inline-flex' }}>
+          <TabItem
+            {...item}
+            active={index === activeIndex}
+            onItemClick={() => onTabChange?.(index)}
+          />
+        </div>
       ))}
     </div>
   );

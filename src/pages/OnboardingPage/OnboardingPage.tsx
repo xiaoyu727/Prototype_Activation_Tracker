@@ -270,7 +270,7 @@ export const OnboardingPage: React.FC = () => {
   const { expanded: sidebarExpanded, setExpanded: setSidebarExpanded } = useSidebarState();
   const navState = location.state as { venue?: Venue; menuDone?: boolean } | null;
   const venueFromNav = navState?.venue;
-  const [venue, setVenue] = useState<Venue>(venueFromNav ?? 'NV');
+  const [venue, setVenue] = useState<Venue>(venueFromNav ?? 'RX');
   const menuJustCompleted = navState?.menuDone === true;
   const [tasks, setTasks] = useState(() =>
     ONBOARDING_TASKS_INITIAL.map(t => ({ ...t })),
@@ -407,8 +407,8 @@ export const OnboardingPage: React.FC = () => {
           onExpandedChange={setSidebarExpanded}
           logoSrc={pedregalLogo}
           logoAlt="Pedregal"
-          venueAvatarSrc={venue === 'NV' ? bobaBloomLogoSidebar : burgeramtLogoImage}
-          venueAvatarAlt={venue === 'NV' ? 'Boba Bloom' : 'Burgeramt Prenzlauer Berg'}
+          venueAvatarSrc={venue === 'NV' ? burgeramtLogoImage : bobaBloomLogoSidebar}
+          venueAvatarAlt={venue === 'NV' ? 'METRO Supermarkets' : 'Boba Bloom'}
           venueName={VENUE_DISPLAY_NAMES[venue]}
           onVenueSwitch={handleVenueSwitch}
           mainNavItems={[

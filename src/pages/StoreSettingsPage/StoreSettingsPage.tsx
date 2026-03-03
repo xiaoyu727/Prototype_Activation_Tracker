@@ -198,11 +198,11 @@ function groupRegularHoursForDisplay(hours: DayHours[]) {
 export const StoreSettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const venue: Venue = (location.state as { venue?: Venue })?.venue ?? 'NV';
+  const venue: Venue = (location.state as { venue?: Venue })?.venue ?? 'RX';
   const { expanded: sidebarExpanded, setExpanded: setSidebarExpanded } = useSidebarState();
   const [previewView, setPreviewView] = useState<'tv' | 'phone'>('phone');
 
-  const defaults = venue === 'RX' ? RX_STORE_DATA : NV_STORE_DATA;
+  const defaults = venue === 'RX' ? NV_STORE_DATA : RX_STORE_DATA;
   const [storeData, setStoreData] = useState<StoreData>(defaults);
   const [editingInfo, setEditingInfo] = useState(false);
   const [draft, setDraft] = useState<StoreData>(defaults);
@@ -1554,8 +1554,8 @@ export const StoreSettingsPage: React.FC = () => {
         onExpandedChange={setSidebarExpanded}
         logoSrc={pedregalLogo}
         logoAlt="Pedregal"
-        venueAvatarSrc={venue === 'NV' ? bobaBloomLogoSidebar : burgeramtLogoImage}
-        venueAvatarAlt={venue === 'NV' ? 'Boba Bloom' : 'Burgeramt'}
+        venueAvatarSrc={venue === 'NV' ? burgeramtLogoImage : bobaBloomLogoSidebar}
+        venueAvatarAlt={venue === 'NV' ? 'METRO Supermarkets' : 'Boba Bloom'}
         venueName={VENUE_DISPLAY_NAMES[venue]}
         onVenueSwitch={() => navigate('/', { state: { venue } })}
         mainNavItems={[

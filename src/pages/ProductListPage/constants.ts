@@ -35,7 +35,7 @@ export const CATEGORY_OPTIONS_RX = [
 
 /** Category options for the given venue. */
 export function getCategoryOptionsByVenue(venue: Venue): string[] {
-  return venue === 'RX' ? CATEGORY_OPTIONS_RX : CATEGORY_OPTIONS;
+  return venue === 'RX' ? CATEGORY_OPTIONS : CATEGORY_OPTIONS_RX;
 }
 
 /** Global category list (supermarkets + restaurants) for product forms. Used on both Create New Product and Product Detail. */

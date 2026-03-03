@@ -7,5 +7,5 @@ export type Venue = 'NV' | 'RX';
 
 export const VENUE_DISPLAY_NAMES: Record<Venue, string> = {
   NV: 'METRO Supermarkets',
-  RX: 'Burgeramt Prenzlauer Berg',
+  RX: 'Boba Bloom',
 };
